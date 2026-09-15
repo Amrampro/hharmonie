@@ -1,4 +1,4 @@
-name: Build H&H
+name: Build and Deploy H&H
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
       - main
 
 jobs:
-  build:
+  build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
@@ -25,13 +25,13 @@ jobs:
       - name: Build du frontend
         working-directory: ./client
         env:
-            VITE_API_URL: ${{ vars.VITE_API_URL }}
-            VITE_BASE_URL: ${{ vars.VITE_BASE_URL }}
-            VITE_STRIPE_PUBLISHABLE_KEY: ${{ vars.VITE_STRIPE_PUBLISHABLE_KEY }}
-            VITE_GOOGLE_MAPS_KEY: ${{ vars.VITE_GOOGLE_MAPS_KEY }}
-            VITE_GOOGLE_MAPS_MAP_ID: ${{ vars.VITE_GOOGLE_MAPS_MAP_ID }}
-            VITE_MR_BRAND_CODE: ${{ vars.VITE_MR_BRAND_CODE }}
-            VITE_MR_ENSEIGNE: ${{ vars.VITE_MR_ENSEIGNE }}
+          VITE_API_URL: ${{ vars.VITE_API_URL }}
+          VITE_BASE_URL: ${{ vars.VITE_BASE_URL }}
+          VITE_STRIPE_PUBLISHABLE_KEY: ${{ vars.VITE_STRIPE_PUBLISHABLE_KEY }}
+          VITE_GOOGLE_MAPS_KEY: ${{ vars.VITE_GOOGLE_MAPS_KEY }}
+          VITE_GOOGLE_MAPS_MAP_ID: ${{ vars.VITE_GOOGLE_MAPS_MAP_ID }}
+          VITE_MR_BRAND_CODE: ${{ vars.VITE_MR_BRAND_CODE }}
+          VITE_MR_ENSEIGNE: ${{ vars.VITE_MR_ENSEIGNE }}
         run: npm run build
 
       - name: Copier le build dans API
@@ -39,7 +39,49 @@ jobs:
           rm -rf ./api/dist
           cp -r ./client/dist ./api/dist
 
-      - name: Verifier le resultat
+      - name: Verifier api/dist
         run: |
-          echo "Contenu de api/dist :"
           ls -la ./api/dist
+
+      # Configuration SSH
+      - name: Configurer SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/github_hharmonie
+          chmod 600 ~/.ssh/github_hharmonie
+          ssh-keyscan -H "${{ secrets.SERVER_HOST }}" >> ~/.ssh/known_hosts
+
+      # Test de connexion
+      - name: Tester connexion SSH
+        run: |
+          ssh -i ~/.ssh/github_hharmonie \
+          "${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}" \
+          "echo 'Connexion SSH GitHub -> Plesk OK'"
+
+      # Deploiement
+      - name: Deployer API vers Plesk
+        run: |
+          rsync -avz --delete \
+            --exclude=".env" \
+            --exclude="node_modules/" \
+            --exclude="public/uploads/" \
+            -e "ssh -i ~/.ssh/github_hharmonie" \
+            ./api/ \
+            "${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:${{ secrets.SERVER_PATH }}/"
+
+      # Installation backend
+      - name: Installer les dependances backend
+        run: |
+          ssh -i ~/.ssh/github_hharmonie \
+          "${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}" \
+          "cd ${{ secrets.SERVER_PATH }} && npm ci --omit=dev"
+
+      # Redemarrer Node.js / Passenger
+      - name: Redemarrer application
+        run: |
+          ssh -i ~/.ssh/github_hharmonie \
+          "${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}" \
+          "cd ${{ secrets.SERVER_PATH }} && mkdir -p tmp && touch tmp/restart.txt"
+
+      - name: Deployment termine
+        run: echo "H&H deployment completed successfully"
