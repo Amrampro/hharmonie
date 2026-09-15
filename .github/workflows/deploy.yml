@@ -72,9 +72,9 @@ jobs:
       # Installation backend
       - name: Installer les dependances backend
         run: |
-          ssh -i ~/.ssh/github_hharmonie \
+            ssh -i ~/.ssh/github_hharmonie \
             "${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}" \
-            "export PATH=/var/www/vhosts/hharmonie.com/.nodenv/shims:\$PATH && cd ${{ secrets.SERVER_PATH }} && npm ci --omit=dev"
+            "export PATH=/var/www/vhosts/hharmonie.com/.nodenv/bin:/var/www/vhosts/hharmonie.com/.nodenv/shims:\$PATH && export NODENV_VERSION=22 && cd ${{ secrets.SERVER_PATH }} && node --version && npm --version && npm ci --omit=dev"
 
       # Redemarrer Node.js / Passenger
       - name: Redemarrer application
