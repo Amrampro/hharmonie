@@ -1,0 +1,72 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Environment variables and local secrets
+.env
+.env.*
+!.env.example
+api/.env
+api/.env.*
+!api/.env.example
+client/.env
+client/.env.*
+!client/.env.example
+
+# Production builds and generated output
+dist/
+dist-ssr/
+build/
+out/
+coverage/
+**/dist/
+**/dist-ssr/
+**/build/
+**/coverage/
+
+# Vite / frontend caches
+.vite/
+**/.vite/
+.vite-temp/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Runtime uploads and generated files
+api/public/uploads/*
+!api/public/uploads/.gitkeep
+!api/public/uploads/products/
+api/public/uploads/products/*
+!api/public/uploads/products/.gitkeep
+tmp/
+temp/
+*.tmp
+
+# Local app/editor configuration
+.bolt/
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+*.local
+
+# OS/package manager metadata
+.npm/
+.pnpm-store/
+.yarn/cache/
+.yarn/unplugged/
+.yarn/build-state.yml
+.yarn/install-state.gz

@@ -1,0 +1,16 @@
+Replace these imports:
+OLD: import { supabase, Product } from '../lib/supabase';
+NEW: import { Product } from '../lib/supabase';
+import { api } from '../services/api';
+
+Replace fetch product:
+OLD: const { data, error } = await supabase
+  .from('products')
+  .select('*, categories(*)')
+  .eq('slug', slug)
+  .maybeSingle();
+if (error) throw error;
+setProduct(data);
+
+NEW: const { product: data } = await api.getProductBySlug(slug);
+setProduct(data);

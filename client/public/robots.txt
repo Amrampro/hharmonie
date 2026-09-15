@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /account
+Disallow: /cart
+Disallow: /checkout
+Disallow: /order-success
+Disallow: /auth
+Disallow: /signup
+
+Sitemap: https://hormoneharmonie.com/sitemap.xml
