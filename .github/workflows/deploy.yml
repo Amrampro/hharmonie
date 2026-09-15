@@ -24,6 +24,14 @@ jobs:
 
       - name: Build du frontend
         working-directory: ./client
+        env:
+            VITE_API_URL: ${{ vars.VITE_API_URL }}
+            VITE_BASE_URL: ${{ vars.VITE_BASE_URL }}
+            VITE_STRIPE_PUBLISHABLE_KEY: ${{ vars.VITE_STRIPE_PUBLISHABLE_KEY }}
+            VITE_GOOGLE_MAPS_KEY: ${{ vars.VITE_GOOGLE_MAPS_KEY }}
+            VITE_GOOGLE_MAPS_MAP_ID: ${{ vars.VITE_GOOGLE_MAPS_MAP_ID }}
+            VITE_MR_BRAND_CODE: ${{ vars.VITE_MR_BRAND_CODE }}
+            VITE_MR_ENSEIGNE: ${{ vars.VITE_MR_ENSEIGNE }}
         run: npm run build
 
       - name: Copier le build dans API
