@@ -1,0 +1,37 @@
+name: Build H&H
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Recuperer le code
+        uses: actions/checkout@v4
+
+      - name: Installer Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Installer les dependances frontend
+        working-directory: ./client
+        run: npm ci
+
+      - name: Build du frontend
+        working-directory: ./client
+        run: npm run build
+
+      - name: Copier le build dans API
+        run: |
+          rm -rf ./api/dist
+          cp -r ./client/dist ./api/dist
+
+      - name: Verifier le resultat
+        run: |
+          echo "Contenu de api/dist :"
+          ls -la ./api/dist
