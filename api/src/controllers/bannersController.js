@@ -123,7 +123,8 @@ export const createBanner = async (req, res) => {
       [
         id,
         page_name,
-        title,
+        // The title is optional in the form, but NOT NULL in the SQL schema.
+        title ?? "",
         subtitle,
         button,
         link,
@@ -173,7 +174,7 @@ export const updateBanner = async (req, res) => {
 
     if (title !== undefined) {
       patch.push("title = ?");
-      params.push(title);
+      params.push(title ?? "");
     }
 
     if (subtitle !== undefined) {

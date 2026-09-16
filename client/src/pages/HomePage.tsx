@@ -1,7 +1,7 @@
 // client/src/pages/HomePage.tsx
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Truck, Award, Leaf, ShieldCheck, ArrowRight, Tag, X, CalendarDays, HeartPulse, Sprout, Pill, Heart } from "lucide-react";
+import { Truck, Award, Leaf, ShieldCheck, ArrowRight, Tag, X, CalendarDays, HeartPulse } from "lucide-react";
 import { theme } from "../config/theme";
 import { Button } from "../components/Button";
 import { ProductCard } from "../components/ProductCard";
@@ -159,184 +159,11 @@ export function HomePage() {
     return copy.slice(0, 8);
   }, [categories]);
 
-  const packPillars = useMemo(
-    () => [
-      {
-        icon: Sprout,
-        title: "1. Phytothérapie",
-        color: theme.colors.primary.main,
-        text: "Nous utilisons les bienfaits des plantes médicinales, notamment à travers nos tisanes H&H, sélectionnées et formulées selon des besoins spécifiques.",
-      },
-      {
-        icon: Leaf,
-        title: "2. Gemmothérapie",
-        color: theme.colors.secondary.main,
-        text: "Elle utilise les macérats de bourgeons et de jeunes pousses, concentrés en actifs naturels, pour soutenir l'équilibre de façon douce.",
-      },
-      {
-        icon: Pill,
-        title: "3. Nutrithérapie",
-        color: theme.colors.accent.main,
-        text: "Elle repose sur une sélection ciblée de vitamines, minéraux, acides gras, antioxydants et autres nutriments pour soutenir l'équilibre au quotidien.",
-      },
-    ],
-    []
-  );
-
   return (
     <div style={{ position: "relative" }}>
       <PageBanner />
 
-      <section
-        className="home-pack-composition"
-        style={{
-          backgroundColor: theme.colors.background.primary,
-          marginTop: "-2px",
-          padding: `${theme.spacing.xl} ${theme.spacing.lg} ${theme.spacing["3xl"]}`,
-          position: "relative",
-          overflow: "visible",
-        }}
-      >
-        <div className="home-banner-wave" aria-hidden="true">
-          <svg viewBox="0 0 1440 88" preserveAspectRatio="none">
-            <path d="M0 42 L80 18 L160 42 L240 18 L320 42 L400 18 L480 42 L560 18 L640 42 L720 18 L800 42 L880 18 L960 42 L1040 18 L1120 42 L1200 18 L1280 42 L1360 18 L1440 42 L1440 88 L0 88 Z" />
-            <polyline points="0,42 80,18 160,42 240,18 320,42 400,18 480,42 560,18 640,42 720,18 800,42 880,18 960,42 1040,18 1120,42 1200,18 1280,42 1360,18 1440,42" />
-          </svg>
-        </div>
 
-        <div
-          style={{
-            maxWidth: theme.container.maxWidth,
-            margin: "0 auto",
-            position: "relative",
-            zIndex: 1,
-            textAlign: "center",
-            paddingTop: theme.spacing["2xl"],
-          }}
-        >
-          <h2
-            style={{
-              ...theme.heading.h3,
-              color: theme.colors.accent.main,
-              textTransform: "uppercase",
-              marginBottom: theme.spacing.sm,
-            }}
-          >
-            Comment sont composés nos packs ?
-          </h2>
-          <p
-            style={{
-              fontFamily: theme.typography.fontFamily.body,
-              color: theme.colors.text.secondary,
-              margin: `0 auto ${theme.spacing["2xl"]}`,
-              maxWidth: 920,
-              lineHeight: theme.typography.lineHeight.body,
-            }}
-          >
-            Nos packs associent trois approches complémentaires pour agir en profondeur et soutenir votre équilibre hormonal naturellement.
-          </p>
-
-          <div
-            className="pack-pillars-grid"
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-              gap: theme.spacing.xl,
-              marginBottom: theme.spacing.xl,
-            }}
-          >
-            {packPillars.map((pillar) => (
-              <article
-                key={pillar.title}
-                style={{
-                  backgroundColor: theme.colors.background.secondary,
-                  border: `1px solid ${theme.colors.border.light}`,
-                  borderRadius: theme.borderRadius.lg,
-                  padding: theme.spacing.xl,
-                  minHeight: 250,
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  textAlign: "center",
-                }}
-              >
-                <div
-                  style={{
-                    width: 64,
-                    height: 64,
-                    borderRadius: "50%",
-                    border: `1px solid ${pillar.color}`,
-                    display: "inline-flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    marginBottom: theme.spacing.md,
-                  }}
-                >
-                  <pillar.icon size={30} color={pillar.color} strokeWidth={1.5} />
-                </div>
-                <h3
-                  style={{
-                    ...theme.heading.h5,
-                    color: pillar.color,
-                    textTransform: "uppercase",
-                    marginBottom: theme.spacing.md,
-                  }}
-                >
-                  {pillar.title}
-                </h3>
-                <p
-                  style={{
-                    fontFamily: theme.typography.fontFamily.body,
-                    fontSize: theme.typography.fontSize.sm,
-                    color: theme.colors.text.secondary,
-                    lineHeight: theme.typography.lineHeight.body,
-                    margin: 0,
-                  }}
-                >
-                  {pillar.text}
-                </p>
-              </article>
-            ))}
-          </div>
-
-          <div
-            style={{
-              maxWidth: 820,
-              margin: "0 auto",
-              backgroundColor: theme.colors.primary[100],
-              borderRadius: theme.borderRadius.full,
-              padding: `${theme.spacing.md} ${theme.spacing.xl}`,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: theme.spacing.md,
-              color: theme.colors.text.secondary,
-              fontFamily: theme.typography.fontFamily.body,
-              lineHeight: 1.45,
-            }}
-          >
-            <span
-              style={{
-                width: 42,
-                height: 42,
-                borderRadius: "50%",
-                backgroundColor: theme.colors.primary.main,
-                color: theme.colors.text.inverse,
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                flexShrink: 0,
-              }}
-            >
-              <Heart size={22} />
-            </span>
-            <span>
-              <strong>Notre objectif :</strong> associer ces différentes approches de façon cohérente et personnalisée pour vous offrir un accompagnement complet, doux et durable.
-            </span>
-          </div>
-        </div>
-      </section>
 
       {/* BRAND STORY */}
       <section
@@ -750,49 +577,7 @@ export function HomePage() {
         </div>
       )}
 
-      <style>{`
-        .home-banner-wave {
-          position: absolute;
-          top: -40px;
-          left: 0;
-          right: 0;
-          height: 88px;
-          color: ${theme.colors.background.primary};
-          pointer-events: none;
-          z-index: 2;
-        }
 
-        .home-banner-wave svg {
-          width: 100%;
-          height: 100%;
-          display: block;
-        }
-
-        .home-banner-wave path {
-          fill: currentColor;
-        }
-
-        .home-banner-wave polyline {
-          fill: none;
-          stroke: ${theme.colors.primary.main};
-          stroke-width: 4;
-          stroke-linejoin: round;
-          stroke-linecap: round;
-        }
-
-        @media (max-width: 900px) {
-          .pack-pillars-grid {
-            grid-template-columns: 1fr !important;
-          }
-        }
-
-        @media (max-width: 640px) {
-          .home-banner-wave {
-            top: -28px;
-            height: 62px;
-          }
-        }
-      `}</style>
     </div>
   );
 }
