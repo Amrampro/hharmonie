@@ -1,3 +1,4 @@
+import { sendApiError } from "../utils/apiError.js";
 // api/src/controllers/parametersController.js
 import { query } from "../config/database.js";
 
@@ -9,7 +10,7 @@ export const getParameters = async (req, res) => {
     res.json({ parameters: rows[0] || null });
   } catch (e) {
     console.error("Get parameters error:", e);
-    res.status(500).json({ error: "Internal server error" });
+    sendApiError(res, e);
   }
 };
 
@@ -134,6 +135,6 @@ export const upsertParameters = async (req, res) => {
     return res.status(201).json({ parameters: created });
   } catch (e) {
     console.error("Upsert parameters error:", e);
-    res.status(500).json({ error: "Internal server error" });
+    sendApiError(res, e);
   }
 };

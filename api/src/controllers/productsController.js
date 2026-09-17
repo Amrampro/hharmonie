@@ -1,5 +1,7 @@
+import { sendApiError } from "../utils/apiError.js";
 // api/src/controllers/productsController.js
-import { query } from "../config/database.js";
+import { query, getConnection } from "../config/database.js";
+import { releaseTransaction } from "../utils/transaction.js";
 
 const toInt = (v, def = 0) => {
   const n = Number.parseInt(String(v ?? ""), 10);
@@ -16,8 +18,8 @@ const normalizeSlug = (s) =>
 
 const asArray = (v) => (Array.isArray(v) ? v : v ? [v] : []);
 
-async function loadProductCategories(productId) {
-  return query(
+async function loadProductCategories(productId, execute = query) {
+  return execute(
     `
     SELECT pc.*
     FROM product_categories pc
@@ -30,15 +32,15 @@ async function loadProductCategories(productId) {
   );
 }
 
-async function loadProductImages(productId) {
-  return query(
+async function loadProductImages(productId, execute = query) {
+  return execute(
     "SELECT * FROM product_images WHERE product_id = ? ORDER BY display_order",
     [productId]
   );
 }
 
-async function loadProductReviews(productId) {
-  return query(
+async function loadProductReviews(productId, execute = query) {
+  return execute(
     "SELECT * FROM product_reviews WHERE product_id = ? ORDER BY created_at DESC LIMIT 10",
     [productId]
   );
@@ -116,7 +118,7 @@ export const getAllProducts = async (req, res) => {
     res.json({ products });
   } catch (error) {
     console.error("Get products error:", error);
-    res.status(500).json({ error: "Internal server error" });
+    sendApiError(res, error);
   }
 };
 
@@ -141,7 +143,7 @@ export const getProductBySlug = async (req, res) => {
     res.json({ product });
   } catch (error) {
     console.error("Get product error:", error);
-    res.status(500).json({ error: "Internal server error" });
+    sendApiError(res, error);
   }
 };
 
@@ -161,12 +163,17 @@ export const getProductByIdAdmin = async (req, res) => {
     res.json({ product });
   } catch (error) {
     console.error("Get product admin error:", error);
-    res.status(500).json({ error: "Internal server error" });
+    sendApiError(res, error);
   }
 };
 
 export const createProduct = async (req, res) => {
+  let connection;
+  let committed = false;
   try {
+    connection = await getConnection();
+    await connection.beginTransaction();
+    const query = async (sql, params = []) => (await connection.execute(sql, params))[0];
     const {
       name,
       slug,
@@ -192,7 +199,7 @@ export const createProduct = async (req, res) => {
     } = req.body ?? {};
 
     if (!name) return res.status(400).json({ error: "name is required" });
-    if (price === undefined || price === null || Number(price) < 0) {
+    if (price === undefined || price === null || !Number.isFinite(Number(price)) || Number(price) < 0) {
       return res.status(400).json({ error: "price is required and must be >= 0" });
     }
 
@@ -242,7 +249,7 @@ export const createProduct = async (req, res) => {
     );
 
     // 2. Insert Categories
-    const catIds = asArray(category_ids).filter(Boolean);
+    const catIds = [...new Set(asArray(category_ids).filter(Boolean))];
     if (catIds.length) {
       const found = await query(
         `SELECT id FROM product_categories WHERE id IN (${catIds
@@ -289,19 +296,28 @@ export const createProduct = async (req, res) => {
 
     const [product] = await query("SELECT * FROM products WHERE id = ?", [id]);
     parseBenefits(product);
-    product.categories = await loadProductCategories(id);
-    product.images = await loadProductImages(id);
+    product.categories = await loadProductCategories(id, query);
+    product.images = await loadProductImages(id, query);
     product.reviews = [];
 
+    await connection.commit();
+    committed = true;
     res.status(201).json({ product });
   } catch (error) {
     console.error("Create product error:", error);
-    res.status(500).json({ error: "Internal server error" });
+    sendApiError(res, error);
+  } finally {
+    await releaseTransaction(connection, committed);
   }
 };
 
 export const updateProduct = async (req, res) => {
+  let connection;
+  let committed = false;
   try {
+    connection = await getConnection();
+    await connection.beginTransaction();
+    const query = async (sql, params = []) => (await connection.execute(sql, params))[0];
     const { id } = req.params;
 
     const existing = await query("SELECT * FROM products WHERE id = ? LIMIT 1", [
@@ -367,7 +383,7 @@ export const updateProduct = async (req, res) => {
     }
 
     if (price !== undefined) {
-      if (price === null || Number(price) < 0) {
+      if (price === null || !Number.isFinite(Number(price)) || Number(price) < 0) {
         return res.status(400).json({ error: "price must be >= 0" });
       }
       patch.push("price = ?");
@@ -454,7 +470,7 @@ export const updateProduct = async (req, res) => {
 
     // 2. Update Categories
     if (category_ids !== undefined) {
-      const ids = asArray(category_ids).filter(Boolean);
+      const ids = [...new Set(asArray(category_ids).filter(Boolean))];
 
       if (ids.length) {
         const found = await query(
@@ -514,19 +530,28 @@ export const updateProduct = async (req, res) => {
 
     const [product] = await query("SELECT * FROM products WHERE id = ?", [id]);
     parseBenefits(product);
-    product.categories = await loadProductCategories(id);
-    product.images = await loadProductImages(id);
-    product.reviews = await loadProductReviews(id);
+    product.categories = await loadProductCategories(id, query);
+    product.images = await loadProductImages(id, query);
+    product.reviews = await loadProductReviews(id, query);
 
+    await connection.commit();
+    committed = true;
     res.json({ product });
   } catch (error) {
     console.error("Update product error:", error);
-    res.status(500).json({ error: "Internal server error" });
+    sendApiError(res, error);
+  } finally {
+    await releaseTransaction(connection, committed);
   }
 };
 
 export const deleteProduct = async (req, res) => {
+  let connection;
+  let committed = false;
   try {
+    connection = await getConnection();
+    await connection.beginTransaction();
+    const query = async (sql, params = []) => (await connection.execute(sql, params))[0];
     const { id } = req.params;
 
     const exists = await query("SELECT id FROM products WHERE id = ? LIMIT 1", [
@@ -539,9 +564,13 @@ export const deleteProduct = async (req, res) => {
     await query("DELETE FROM product_images WHERE product_id = ?", [id]);
     await query("DELETE FROM products WHERE id = ?", [id]);
 
+    await connection.commit();
+    committed = true;
     res.json({ success: true });
   } catch (error) {
     console.error("Delete product error:", error);
-    res.status(500).json({ error: "Internal server error" });
+    sendApiError(res, error);
+  } finally {
+    await releaseTransaction(connection, committed);
   }
 };

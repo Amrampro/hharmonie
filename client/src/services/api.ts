@@ -1,5 +1,6 @@
 // client/src/services/api.ts
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001/api";
+import { apiEndpoints } from "./apiEndpoints";
+const API_URL = apiEndpoints.base;
 const TOKEN_KEY = "token"; // ✅ clé unique partout
 
 class ApiService {
@@ -52,14 +53,12 @@ class ApiService {
   // HTTP core
   // -----------------------
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-    const headers: HeadersInit = {
-      "Content-Type": "application/json",
-      ...(options.headers || {}),
-    };
+    const headers = new Headers(options.headers);
+    if (!headers.has("Content-Type")) headers.set("Content-Type", "application/json");
 
     // ✅ attach JWT
     if (this.token) {
-      headers["Authorization"] = `Bearer ${this.token}`;
+      headers.set("Authorization", `Bearer ${this.token}`);
     }
 
     const res = await fetch(`${API_URL}${endpoint}`, {

@@ -1,5 +1,6 @@
 import mysql from 'mysql2/promise';
 import dotenv from 'dotenv';
+import { preparePagination } from '../utils/sqlPagination.js';
 
 dotenv.config();
 
@@ -19,7 +20,8 @@ const pool = mysql.createPool({
 
 export const query = async (sql, params) => {
   try {
-    const [results] = await pool.execute(sql, params);
+    const prepared = preparePagination(sql, params);
+    const [results] = await pool.execute(prepared.sql, prepared.params);
     return results;
   } catch (error) {
     console.error('Database query error:', error);

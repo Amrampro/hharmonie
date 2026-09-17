@@ -2,6 +2,7 @@
 import { query, getConnection } from "../../config/database.js";
 import crypto from "node:crypto";
 import { computeCommissionCents } from "../../utils/ambassadors/commission.js";
+import { releaseTransaction } from "../../utils/transaction.js";
 
 export async function findActiveAmbassadorByCode(code) {
   const safe = String(code || "").trim();
@@ -15,8 +16,8 @@ export async function findActiveAmbassadorByCode(code) {
   return rows?.[0] ?? null;
 }
 
-export async function computeAmbassadorDueCents(ambassadorId) {
-  const [row1] = await query(
+export async function computeAmbassadorDueCents(ambassadorId, execute = query) {
+  const [row1] = await execute(
     `
     SELECT COALESCE(SUM(o.ambassador_commission_amount),0) AS total_commission
     FROM orders o
@@ -26,7 +27,7 @@ export async function computeAmbassadorDueCents(ambassadorId) {
     [ambassadorId],
   );
 
-  const [row2] = await query(
+  const [row2] = await execute(
     `
     SELECT COALESCE(SUM(p.amount),0) AS total_paid
     FROM ambassador_payouts p
@@ -90,36 +91,37 @@ export async function createPayoutAdmin({
   adminUserId = null,
   note = null,
 }) {
-  const amt = Math.max(0, Math.round(Number(amount || 0)));
-  if (!ambassadorId) throw new Error("ambassadorId is required");
-  if (amt <= 0) throw new Error("amount must be > 0");
-
-  const ambassadorRows = await query(`SELECT * FROM ambassadors WHERE id = ? LIMIT 1`, [ambassadorId]);
-  const ambassador = ambassadorRows?.[0];
-  if (!ambassador) throw new Error("Ambassador not found");
-
-  const due = await computeAmbassadorDueCents(ambassadorId);
-  if (amt > due) {
-    const err = new Error("Amount exceeds due amount");
-    err.statusCode = 400;
-    err.details = { due };
-    throw err;
+  const amt = Number(amount);
+  if (!ambassadorId || !Number.isSafeInteger(amt) || amt <= 0 || amt > 2147483647) {
+    throw Object.assign(new Error("Le montant doit être un nombre entier positif de centimes."), { statusCode: 400 });
   }
-
-  const payoutId = crypto.randomUUID();
-
-  await query(
-    `
-    INSERT INTO ambassador_payouts
-      (id, ambassador_id, amount, currency, paid_at, created_by_admin_id, note, created_at)
-    VALUES
-      (?, ?, ?, 'EUR', NOW(), ?, ?, NOW())
-    `,
-    [payoutId, ambassadorId, amt, adminUserId, note],
-  );
-
-  const payouts = await query(`SELECT * FROM ambassador_payouts WHERE id = ? LIMIT 1`, [payoutId]);
-  return payouts?.[0] ?? null;
+  let connection;
+  let committed = false;
+  try {
+    connection = await getConnection();
+    await connection.beginTransaction();
+    const execute = async (sql, params = []) => (await connection.execute(sql, params))[0];
+    // Serialize payouts for the same ambassador before reading the outstanding balance.
+    const [ambassador] = await execute("SELECT id FROM ambassadors WHERE id = ? FOR UPDATE", [ambassadorId]);
+    if (!ambassador) throw Object.assign(new Error("Ambassador not found"), { statusCode: 404 });
+    const due = await computeAmbassadorDueCents(ambassadorId, execute);
+    if (amt > due) {
+      throw Object.assign(new Error("Amount exceeds due amount"), { statusCode: 400, details: { due } });
+    }
+    const payoutId = crypto.randomUUID();
+    await execute(
+      `INSERT INTO ambassador_payouts
+        (id, ambassador_id, amount, currency, paid_at, created_by_admin_id, note, created_at)
+       VALUES (?, ?, ?, 'EUR', NOW(), ?, ?, NOW())`,
+      [payoutId, ambassadorId, amt, adminUserId, note]
+    );
+    const [payout] = await execute("SELECT * FROM ambassador_payouts WHERE id = ? LIMIT 1", [payoutId]);
+    await connection.commit();
+    committed = true;
+    return payout;
+  } finally {
+    await releaseTransaction(connection, committed);
+  }
 }
 
 export function computeCommissionForOrderSnapshot(ambassador, subtotal_amount) {

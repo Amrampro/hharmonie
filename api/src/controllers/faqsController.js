@@ -1,3 +1,4 @@
+import { sendApiError } from "../utils/apiError.js";
 // api/src/controllers/faqsController.js
 import { query } from "../config/database.js";
 
@@ -42,7 +43,7 @@ export const getFaqs = async (req, res) => {
     res.json({ faqs });
   } catch (error) {
     console.error("Get faqs error:", error);
-    res.status(500).json({ error: "Internal server error" });
+    sendApiError(res, error);
   }
 };
 
@@ -57,7 +58,7 @@ export const getFaqById = async (req, res) => {
     res.json({ faq: rows[0] });
   } catch (error) {
     console.error("Get faq error:", error);
-    res.status(500).json({ error: "Internal server error" });
+    sendApiError(res, error);
   }
 };
 
@@ -74,10 +75,12 @@ export const createFaq = async (req, res) => {
     if (!question?.trim()) return res.status(400).json({ error: "question is required" });
     if (!answer?.trim()) return res.status(400).json({ error: "answer is required" });
 
-    const idRows = await query("SELECT UUID() AS id");
-    const id = idRows[0].id;
+    // Historical installations use UUIDs; schema.sql uses an AUTO_INCREMENT id.
+    const [idColumn] = await query("SHOW COLUMNS FROM faqs LIKE 'id'");
+    const autoId = String(idColumn?.Extra).includes("auto_increment");
+    const id = autoId ? null : (await query("SELECT UUID() AS id"))[0].id;
 
-    await query(
+    const result = await query(
       `
       INSERT INTO faqs (id, question, answer, category, display_order)
       VALUES (?, ?, ?, ?, ?)
@@ -91,11 +94,11 @@ export const createFaq = async (req, res) => {
       ]
     );
 
-    const [faq] = await query("SELECT * FROM faqs WHERE id = ?", [id]);
+    const [faq] = await query("SELECT * FROM faqs WHERE id = ?", [autoId ? result.insertId : id]);
     res.status(201).json({ faq });
   } catch (error) {
     console.error("Create faq error:", error);
-    res.status(500).json({ error: "Internal server error" });
+    sendApiError(res, error);
   }
 };
 
@@ -142,7 +145,7 @@ export const updateFaq = async (req, res) => {
     res.json({ faq });
   } catch (error) {
     console.error("Update faq error:", error);
-    res.status(500).json({ error: "Internal server error" });
+    sendApiError(res, error);
   }
 };
 
@@ -158,6 +161,6 @@ export const deleteFaq = async (req, res) => {
     res.json({ success: true });
   } catch (error) {
     console.error("Delete faq error:", error);
-    res.status(500).json({ error: "Internal server error" });
+    sendApiError(res, error);
   }
 };

@@ -1,4 +1,5 @@
-// api/src/controllers/bannersController.js
+import { sendApiError } from "../utils/apiError.js";
+// api/src/controllers/legalLinksController.js
 import { query } from "../config/database.js";
 
 const toInt = (v, def = 0) => {
@@ -11,6 +12,18 @@ const toBoolTiny = (v, def = 1) => {
   if (v === false || v === 0 || v === "0") return 0;
   return def;
 };
+
+function validateLink(body, partial = false) {
+  for (const [field, max] of [["name", 255], ["file", 500]]) {
+    if (partial && body[field] === undefined) continue;
+    if (typeof body[field] !== "string" || !body[field].trim()) return `${field} is required`;
+    if ([...body[field].trim()].length > max) return `${field}: maximum ${max} caractères`;
+  }
+  if (body.display_order !== undefined && (!Number.isInteger(Number(body.display_order)) || Number(body.display_order) < 0 || Number(body.display_order) > 2147483647)) {
+    return "display_order must be a non-negative integer";
+  }
+  return null;
+}
 
 export const getLegalLinks = async (req, res) => {
   try {
@@ -34,7 +47,7 @@ export const getLegalLinks = async (req, res) => {
     res.json({ links });
   } catch (error) {
     console.error("Get legal links error:", error);
-    res.status(500).json({ error: "Internal server error" });
+    sendApiError(res, error);
   }
 };
 
@@ -48,13 +61,16 @@ export const getLegalLinkById = async (req, res) => {
     res.json({ link: rows[0] });
   } catch (error) {
     console.error("Get legal link by id error:", error);
-    res.status(500).json({ error: "Internal server error" });
+    sendApiError(res, error);
   }
 };
 
 export const createLegalLink = async (req, res) => {
   try {
     const { name, file, display_order = 0, is_active = 1 } = req.body ?? {};
+
+    const validationError = validateLink(req.body ?? {});
+    if (validationError) return res.status(400).json({ error: validationError });
 
     if (!name) return res.status(400).json({ error: "name is required" });
     if (!file) return res.status(400).json({ error: "file is required" });
@@ -67,14 +83,14 @@ export const createLegalLink = async (req, res) => {
       INSERT INTO legal_links (id, name, file, display_order, is_active)
       VALUES (?, ?, ?, ?, ?)
       `,
-      [id, name, file, toInt(display_order, 0), toBoolTiny(is_active, 1)]
+      [id, name.trim(), file.trim(), toInt(display_order, 0), toBoolTiny(is_active, 1)]
     );
 
     const [linkRow] = await query("SELECT * FROM legal_links WHERE id = ?", [id]);
     res.status(201).json({ link: linkRow });
   } catch (error) {
     console.error("Create legal link error:", error);
-    res.status(500).json({ error: "Internal server error" });
+    sendApiError(res, error);
   }
 };
 
@@ -87,19 +103,22 @@ export const updateLegalLink = async (req, res) => {
 
     const { name, file, display_order, is_active } = req.body ?? {};
 
+    const validationError = validateLink(req.body ?? {}, true);
+    if (validationError) return res.status(400).json({ error: validationError });
+
     const patch = [];
     const params = [];
 
     if (name !== undefined) {
       if (!name) return res.status(400).json({ error: "name cannot be empty" });
       patch.push("name = ?");
-      params.push(name);
+      params.push(name.trim());
     }
 
     if (file !== undefined) {
       if (!file) return res.status(400).json({ error: "file cannot be empty" });
       patch.push("file = ?");
-      params.push(file);
+      params.push(file.trim());
     }
 
     if (display_order !== undefined) {
@@ -123,7 +142,7 @@ export const updateLegalLink = async (req, res) => {
     res.json({ link: linkRow });
   } catch (error) {
     console.error("Update legal link error:", error);
-    res.status(500).json({ error: "Internal server error" });
+    sendApiError(res, error);
   }
 };
 
@@ -138,6 +157,6 @@ export const deleteLegalLink = async (req, res) => {
     res.json({ success: true });
   } catch (error) {
     console.error("Delete legal link error:", error);
-    res.status(500).json({ error: "Internal server error" });
+    sendApiError(res, error);
   }
 };

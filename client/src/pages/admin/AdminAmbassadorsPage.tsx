@@ -1,5 +1,5 @@
 // client/src/pages/admin/AdminAmbassadorsPage.tsx
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { theme } from "../../config/theme";
 import { ambassadorsService } from "../../services/ambassadorsService";
 import { Button } from "../../components/Button";
@@ -21,6 +21,8 @@ export function AdminAmbassadorsPage() {
   const [payModal, setPayModal] = useState<{ open: boolean; amb: any | null }>({ open: false, amb: null });
   const [payAmountEur, setPayAmountEur] = useState<string>("");
   const [payNote, setPayNote] = useState<string>("");
+  const [paying, setPaying] = useState(false);
+  const paymentPending = useRef(false);
 
   const load = async () => {
     setBusy(true);
@@ -48,6 +50,7 @@ export function AdminAmbassadorsPage() {
   const closePay = () => setPayModal({ open: false, amb: null });
 
   const submitPay = async () => {
+    if (paymentPending.current) return;
     const amb = payModal.amb;
     if (!amb?.id) return;
 
@@ -55,14 +58,19 @@ export function AdminAmbassadorsPage() {
     if (!Number.isFinite(eur) || eur <= 0) return alert("Montant invalide");
 
     const amount = Math.round(eur * 100);
+    paymentPending.current = true;
+    setPaying(true);
 
     try {
-      await ambassadorsService.adminPay(amb.id, { amount, note: payNote || undefined });
+      const result = await ambassadorsService.adminPay(amb.id, { amount, note: payNote || undefined });
       closePay();
       await load();
-      alert("Paiement enregistré et email envoyé.");
+      alert(result.warning || "Paiement enregistré.");
     } catch (e: any) {
       alert(e?.response?.data?.error || e?.message || "Erreur paiement");
+    } finally {
+      paymentPending.current = false;
+      setPaying(false);
     }
   };
 
@@ -152,8 +160,8 @@ export function AdminAmbassadorsPage() {
               </div>
 
               <div style={{ display: "flex", gap: theme.spacing.md, justifyContent: "flex-end", marginTop: theme.spacing.lg }}>
-                <Button variant="outline" onClick={closePay}>Annuler</Button>
-                <Button variant="primary" onClick={submitPay}>Valider paiement</Button>
+                <Button variant="outline" onClick={closePay} disabled={paying}>Annuler</Button>
+                <Button variant="primary" onClick={submitPay} disabled={paying}>{paying ? "Enregistrement…" : "Valider paiement"}</Button>
               </div>
             </div>
           </div>

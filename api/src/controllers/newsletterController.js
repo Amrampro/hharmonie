@@ -1,3 +1,4 @@
+import { sendApiError } from "../utils/apiError.js";
 // api/src/controllers/newsletterController.js
 import { query } from "../config/database.js";
 
@@ -36,23 +37,24 @@ export const subscribeNewsletter = async (req, res) => {
       });
     }
 
-    const [idRow] = await query("SELECT UUID() AS id");
-    const id = idRow.id;
+    const [idColumn] = await query("SHOW COLUMNS FROM newsletter_subscribers LIKE 'id'");
+    const autoId = String(idColumn?.Extra).includes("auto_increment");
+    const id = autoId ? null : (await query("SELECT UUID() AS id"))[0].id;
 
-    await query(
+    const result = await query(
       `INSERT INTO newsletter_subscribers (id, email) VALUES (?, ?)`,
       [id, email]
     );
 
     const [subscriber] = await query(
       "SELECT id, email, created_at FROM newsletter_subscribers WHERE id = ? LIMIT 1",
-      [id]
+      [autoId ? result.insertId : id]
     );
 
     return res.status(201).json({ status: "subscribed", subscriber });
   } catch (error) {
     console.error("Subscribe newsletter error:", error);
-    return res.status(500).json({ error: "Internal server error" });
+    return sendApiError(res, error);
   }
 };
 
@@ -96,7 +98,7 @@ export const adminListNewsletterSubscribers = async (req, res) => {
     return res.json({ items, total: Number(countRow?.total ?? 0) });
   } catch (error) {
     console.error("List newsletter subscribers error:", error);
-    return res.status(500).json({ error: "Internal server error" });
+    return sendApiError(res, error);
   }
 };
 
@@ -116,6 +118,6 @@ export const adminDeleteNewsletterSubscriber = async (req, res) => {
     return res.json({ success: true });
   } catch (error) {
     console.error("Delete newsletter subscriber error:", error);
-    return res.status(500).json({ error: "Internal server error" });
+    return sendApiError(res, error);
   }
 };

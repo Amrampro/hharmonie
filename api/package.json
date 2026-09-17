@@ -6,7 +6,10 @@
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
-    "dev": "node --watch src/server.js"
+    "dev": "node --watch src/server.js",
+    "db:check": "node scripts/checkSchema.js",
+    "db:migrate": "node scripts/checkSchema.js --apply",
+    "test": "node --experimental-vm-modules --test"
   },
   "keywords": [
     "express",

@@ -1,11 +1,12 @@
 // api/src/routes/admin/ambassadors.routes.js
 import { Router } from "express";
 import * as AmbassadorsAdminController from "../../controllers/admin/ambassadorsController.js";
+import { authenticateToken, requireAdmin } from "../../middleware/auth.js";
 // import { requireAdmin } from "../../middleware/requireAdmin.js"; // si tu l'as
 
 const router = Router();
 
-// router.use(requireAdmin);
+router.use(authenticateToken, requireAdmin);
 
 router.get("/", AmbassadorsAdminController.getAmbassadors);
 router.get("/:id", AmbassadorsAdminController.getAmbassadorById);

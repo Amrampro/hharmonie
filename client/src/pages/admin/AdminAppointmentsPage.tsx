@@ -1,9 +1,11 @@
+import { useAdminAction } from "../../hooks/useAdminAction";
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { CalendarDays, Plus, Trash2 } from "lucide-react";
 import { appointmentService, type Appointment, type AppointmentService, type AppointmentSlot } from "../../services/appointmentService";
 
 export default function AdminAppointmentsPage() {
+  const { error, busy, run } = useAdminAction();
   const [services, setServices] = useState<AppointmentService[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [slots, setSlots] = useState<AppointmentSlot[]>([]);
@@ -24,29 +26,36 @@ export default function AdminAppointmentsPage() {
   };
 
   useEffect(() => {
-    void load();
+    void run(load);
   }, []);
 
   const createService = async (event: FormEvent) => {
     event.preventDefault();
-    await appointmentService.adminCreateService(serviceForm as any);
-    setServiceForm({ name: "", short_description: "", duration_minutes: 60, price: 65, meeting_type: "online" });
-    await load();
+    await run(async () => {
+      await appointmentService.adminCreateService(serviceForm as any);
+      setServiceForm({ name: "", short_description: "", duration_minutes: 60, price: 65, meeting_type: "online" });
+      await load();
+    });
   };
 
   const createSlot = async (event: FormEvent) => {
     event.preventDefault();
-    await appointmentService.adminCreateSlot(slotForm);
-    await load();
+    await run(async () => {
+      await appointmentService.adminCreateSlot(slotForm);
+      await load();
+    });
   };
 
   const deleteSlot = async (id: string) => {
-    await appointmentService.adminDeleteSlot(id);
-    await load();
+    await run(async () => {
+      await appointmentService.adminDeleteSlot(id);
+      await load();
+    });
   };
 
   return (
     <div className="space-y-8">
+      {error && <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-red-700">{error}</div>}
       <div className="flex items-end justify-between gap-4">
         <div>
           <span className="text-sm font-semibold text-slate-400 uppercase">Consultations</span>
@@ -70,7 +79,7 @@ export default function AdminAppointmentsPage() {
                 <option value="hybrid">Hybride</option>
               </select>
             </div>
-            <button className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#C99A32] px-4 py-3 font-semibold text-white">
+            <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#C99A32] px-4 py-3 font-semibold text-white">
               <Plus size={18} /> Ajouter
             </button>
           </div>
@@ -87,7 +96,7 @@ export default function AdminAppointmentsPage() {
               <input required type="time" value={slotForm.start_time} onChange={(e) => setSlotForm({ ...slotForm, start_time: e.target.value })} />
               <input required type="time" value={slotForm.end_time} onChange={(e) => setSlotForm({ ...slotForm, end_time: e.target.value })} />
             </div>
-            <button className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#A47788] px-4 py-3 font-semibold text-white">
+            <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#A47788] px-4 py-3 font-semibold text-white">
               <CalendarDays size={18} /> Créer le créneau
             </button>
           </div>
@@ -102,7 +111,7 @@ export default function AdminAppointmentsPage() {
               <strong>{slot.service_name}</strong>
               <span>{new Date(slot.available_date).toLocaleDateString("fr-FR")}</span>
               <span>{slot.start_time.slice(0, 5)} - {slot.end_time.slice(0, 5)} | {slot.status}</span>
-              <button type="button" onClick={() => deleteSlot(slot.id)} className="inline-flex items-center justify-center rounded-lg border p-2 text-red-600">
+              <button disabled={busy} type="button" onClick={() => deleteSlot(slot.id)} className="inline-flex items-center justify-center rounded-lg border p-2 text-red-600">
                 <Trash2 size={17} />
               </button>
             </div>

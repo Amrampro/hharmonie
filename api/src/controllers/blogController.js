@@ -1,5 +1,8 @@
+import { sendApiError } from "../utils/apiError.js";
 // api/src/controllers/blogController.js
-import { query } from "../config/database.js";
+import { query, getConnection } from "../config/database.js";
+import { releaseTransaction } from "../utils/transaction.js";
+import { toMysqlDateTime } from "../utils/dateTime.js";
 
 const toInt = (v, def = 0) => {
   const n = Number.parseInt(String(v ?? ""), 10);
@@ -16,8 +19,8 @@ const normalizeSlug = (s) =>
 
 const asArray = (v) => (Array.isArray(v) ? v : v ? [v] : []);
 
-async function loadPostCategories(postId) {
-  return query(
+async function loadPostCategories(postId, execute = query) {
+  return execute(
     `
     SELECT bc.*
     FROM blog_categories bc
@@ -55,7 +58,7 @@ async function loadPostCategories(postId) {
 //     res.json({ posts });
 //   } catch (error) {
 //     console.error("Get blog posts error:", error);
-//     res.status(500).json({ error: "Internal server error" });
+//     sendApiError(res, error);
 //   }
 // };
 
@@ -92,7 +95,7 @@ export const getAllPosts = async (req, res) => {
     res.json({ posts });
   } catch (error) {
     console.error("Get blog posts error:", error);
-    res.status(500).json({ error: "Internal server error" });
+    sendApiError(res, error);
   }
 };
 
@@ -129,7 +132,7 @@ export const getAllPostsAdmin = async (req, res) => {
     res.json({ posts });
   } catch (error) {
     console.error("Get blog posts admin error:", error);
-    res.status(500).json({ error: "Internal server error" });
+    sendApiError(res, error);
   }
 };
 
@@ -161,7 +164,7 @@ export const getPostBySlug = async (req, res) => {
     res.json({ post });
   } catch (error) {
     console.error("Get blog post error:", error);
-    res.status(500).json({ error: "Internal server error" });
+    sendApiError(res, error);
   }
 };
 
@@ -180,12 +183,17 @@ export const getPostByIdAdmin = async (req, res) => {
     res.json({ post });
   } catch (error) {
     console.error("Get blog post admin error:", error);
-    res.status(500).json({ error: "Internal server error" });
+    sendApiError(res, error);
   }
 };
 
 export const createPost = async (req, res) => {
+  let connection;
+  let committed = false;
   try {
+    connection = await getConnection();
+    await connection.beginTransaction();
+    const query = async (sql, params = []) => (await connection.execute(sql, params))[0];
     const {
       title,
       slug,
@@ -233,11 +241,11 @@ export const createPost = async (req, res) => {
         content,
         image_url,
         toInt(reading_time, 5),
-        published_at,
+        toMysqlDateTime(published_at),
       ]
     );
 
-    const ids = asArray(category_ids).filter(Boolean);
+    const ids = [...new Set(asArray(category_ids).filter(Boolean))];
     if (ids.length) {
       // validate ids exist
       const found = await query(
@@ -264,17 +272,26 @@ export const createPost = async (req, res) => {
     const [post] = await query("SELECT * FROM blog_posts WHERE id = ?", [
       postId,
     ]);
-    post.categories = await loadPostCategories(postId);
+    post.categories = await loadPostCategories(postId, query);
 
+    await connection.commit();
+    committed = true;
     res.status(201).json({ post });
   } catch (error) {
     console.error("Create blog post error:", error);
-    res.status(500).json({ error: "Internal server error" });
+    sendApiError(res, error);
+  } finally {
+    await releaseTransaction(connection, committed);
   }
 };
 
 export const updatePost = async (req, res) => {
+  let connection;
+  let committed = false;
   try {
+    connection = await getConnection();
+    await connection.beginTransaction();
+    const query = async (sql, params = []) => (await connection.execute(sql, params))[0];
     const { id } = req.params;
 
     const existing = await query("SELECT * FROM blog_posts WHERE id = ? LIMIT 1", [
@@ -335,7 +352,7 @@ export const updatePost = async (req, res) => {
     }
     if (published_at !== undefined) {
       patch.push("published_at = ?");
-      params.push(published_at);
+      params.push(toMysqlDateTime(published_at));
     }
 
     if (patch.length) {
@@ -347,7 +364,7 @@ export const updatePost = async (req, res) => {
 
     // Replace categories if provided
     if (category_ids !== undefined) {
-      const ids = asArray(category_ids).filter(Boolean);
+      const ids = [...new Set(asArray(category_ids).filter(Boolean))];
 
       if (ids.length) {
         const found = await query(
@@ -379,17 +396,26 @@ export const updatePost = async (req, res) => {
     }
 
     const [post] = await query("SELECT * FROM blog_posts WHERE id = ?", [id]);
-    post.categories = await loadPostCategories(id);
+    post.categories = await loadPostCategories(id, query);
 
+    await connection.commit();
+    committed = true;
     res.json({ post });
   } catch (error) {
     console.error("Update blog post error:", error);
-    res.status(500).json({ error: "Internal server error" });
+    sendApiError(res, error);
+  } finally {
+    await releaseTransaction(connection, committed);
   }
 };
 
 export const deletePost = async (req, res) => {
+  let connection;
+  let committed = false;
   try {
+    connection = await getConnection();
+    await connection.beginTransaction();
+    const query = async (sql, params = []) => (await connection.execute(sql, params))[0];
     const { id } = req.params;
 
     const rows = await query("SELECT id FROM blog_posts WHERE id = ? LIMIT 1", [
@@ -403,10 +429,14 @@ export const deletePost = async (req, res) => {
     ]);
     await query("DELETE FROM blog_posts WHERE id = ?", [id]);
 
+    await connection.commit();
+    committed = true;
     res.json({ success: true });
   } catch (error) {
     console.error("Delete blog post error:", error);
-    res.status(500).json({ error: "Internal server error" });
+    sendApiError(res, error);
+  } finally {
+    await releaseTransaction(connection, committed);
   }
 };
 
@@ -427,7 +457,7 @@ export const publishPost = async (req, res) => {
     res.json({ post });
   } catch (error) {
     console.error("Publish blog post error:", error);
-    res.status(500).json({ error: "Internal server error" });
+    sendApiError(res, error);
   }
 };
 
@@ -448,6 +478,6 @@ export const unpublishPost = async (req, res) => {
     res.json({ post });
   } catch (error) {
     console.error("Unpublish blog post error:", error);
-    res.status(500).json({ error: "Internal server error" });
+    sendApiError(res, error);
   }
 };

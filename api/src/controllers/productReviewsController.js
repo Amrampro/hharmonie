@@ -1,3 +1,4 @@
+import { sendApiError } from "../utils/apiError.js";
 // api/src/controllers/productReviewsController.js
 import { query } from "../config/database.js";
 
@@ -40,7 +41,7 @@ export const listProductReviews = async (req, res) => {
     res.json({ reviews });
   } catch (error) {
     console.error("List product reviews error:", error);
-    res.status(500).json({ error: "Internal server error" });
+    sendApiError(res, error);
   }
 };
 
@@ -101,7 +102,7 @@ export const createProductReview = async (req, res) => {
     res.status(201).json({ review });
   } catch (error) {
     console.error("Create product review error:", error);
-    res.status(500).json({ error: "Internal server error" });
+    sendApiError(res, error);
   }
 };
 
@@ -145,7 +146,7 @@ export const adminListReviews = async (req, res) => {
     res.json({ reviews });
   } catch (error) {
     console.error("Admin list reviews error:", error);
-    res.status(500).json({ error: "Internal server error" });
+    sendApiError(res, error);
   }
 };
 
@@ -160,6 +161,6 @@ export const adminDeleteReview = async (req, res) => {
     res.json({ success: true });
   } catch (error) {
     console.error("Admin delete review error:", error);
-    res.status(500).json({ error: "Internal server error" });
+    sendApiError(res, error);
   }
 };

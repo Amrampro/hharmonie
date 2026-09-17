@@ -1,3 +1,4 @@
+import { sendApiError } from "../utils/apiError.js";
 // api/src/controllers/productCategoriesController.js
 import { query } from "../config/database.js";
 
@@ -32,7 +33,7 @@ export const getProductCategories = async (req, res) => {
     res.json({ categories });
   } catch (error) {
     console.error("Get product categories error:", error);
-    res.status(500).json({ error: "Internal server error" });
+    sendApiError(res, error);
   }
 };
 
@@ -83,7 +84,7 @@ export const createProductCategory = async (req, res) => {
     res.status(201).json({ category });
   } catch (error) {
     console.error("Create product category error:", error);
-    res.status(500).json({ error: "Internal server error" });
+    sendApiError(res, error);
   }
 };
 
@@ -167,7 +168,7 @@ export const updateProductCategory = async (req, res) => {
     res.json({ category });
   } catch (error) {
     console.error("Update product category error:", error);
-    res.status(500).json({ error: "Internal server error" });
+    sendApiError(res, error);
   }
 };
 
@@ -196,6 +197,6 @@ export const deleteProductCategory = async (req, res) => {
     res.json({ success: true });
   } catch (error) {
     console.error("Delete product category error:", error);
-    res.status(500).json({ error: "Internal server error" });
+    sendApiError(res, error);
   }
 };

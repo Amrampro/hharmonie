@@ -1,4 +1,6 @@
+import { sendApiError } from "../utils/apiError.js";
 import { query } from "../config/database.js";
+import { toMysqlDateTime } from "../utils/dateTime.js";
 
 const toSlug = (value) =>
   String(value ?? "")
@@ -9,11 +11,6 @@ const toSlug = (value) =>
     .replace(/['"]/g, "")
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
-
-const toMysqlDateTime = (value) => {
-  if (!value) return null;
-  return String(value).replace("T", " ");
-};
 
 export async function listEvents(req, res) {
   try {
@@ -28,7 +25,7 @@ export async function listEvents(req, res) {
     res.json({ events });
   } catch (error) {
     console.error("List events error:", error);
-    res.status(500).json({ error: "Internal server error" });
+    sendApiError(res, error);
   }
 }
 
@@ -39,7 +36,7 @@ export async function getEventBySlug(req, res) {
     res.json({ event: rows[0] });
   } catch (error) {
     console.error("Get event error:", error);
-    res.status(500).json({ error: "Internal server error" });
+    sendApiError(res, error);
   }
 }
 
@@ -49,7 +46,7 @@ export async function adminListEvents(req, res) {
     res.json({ events });
   } catch (error) {
     console.error("Admin list events error:", error);
-    res.status(500).json({ error: "Internal server error" });
+    sendApiError(res, error);
   }
 }
 
@@ -86,7 +83,7 @@ export async function adminCreateEvent(req, res) {
     res.status(201).json({ event });
   } catch (error) {
     console.error("Admin create event error:", error);
-    res.status(500).json({ error: "Internal server error" });
+    sendApiError(res, error);
   }
 }
 
@@ -124,7 +121,7 @@ export async function adminUpdateEvent(req, res) {
     res.json({ event: rows[0] });
   } catch (error) {
     console.error("Admin update event error:", error);
-    res.status(500).json({ error: "Internal server error" });
+    sendApiError(res, error);
   }
 }
 
@@ -134,6 +131,6 @@ export async function adminDeleteEvent(req, res) {
     res.json({ success: true });
   } catch (error) {
     console.error("Admin delete event error:", error);
-    res.status(500).json({ error: "Internal server error" });
+    sendApiError(res, error);
   }
 }

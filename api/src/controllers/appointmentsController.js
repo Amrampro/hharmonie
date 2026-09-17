@@ -1,3 +1,4 @@
+import { sendApiError } from "../utils/apiError.js";
 import { getConnection, query } from "../config/database.js";
 
 const toBool = (value) => value === true || value === 1 || value === "1";
@@ -21,7 +22,7 @@ export async function listServices(req, res) {
     res.json({ services: services.map((service) => ({ ...service, is_active: toBool(service.is_active) })) });
   } catch (error) {
     console.error("List appointment services error:", error);
-    res.status(500).json({ error: "Internal server error" });
+    sendApiError(res, error);
   }
 }
 
@@ -44,18 +45,19 @@ export async function listSlots(req, res) {
     res.json({ slots });
   } catch (error) {
     console.error("List appointment slots error:", error);
-    res.status(500).json({ error: "Internal server error" });
+    sendApiError(res, error);
   }
 }
 
 export async function bookAppointment(req, res) {
-  const connection = await getConnection();
+  let connection;
   try {
     const { service_id, slot_id, first_name, last_name, email, phone = null, message = null } = req.body ?? {};
     if (!service_id || !slot_id || !first_name || !last_name || !email) {
       return res.status(400).json({ error: "Missing required fields" });
     }
 
+    connection = await getConnection();
     await connection.beginTransaction();
     const [slots] = await connection.execute(
       "SELECT * FROM appointment_slots WHERE id = ? AND service_id = ? AND status = 'available' FOR UPDATE",
@@ -77,11 +79,11 @@ export async function bookAppointment(req, res) {
     await connection.commit();
     res.status(201).json({ appointment_number: number });
   } catch (error) {
-    await connection.rollback();
+    if (connection) await connection.rollback();
     console.error("Book appointment error:", error);
-    res.status(500).json({ error: "Internal server error" });
+    sendApiError(res, error);
   } finally {
-    connection.release();
+    connection?.release();
   }
 }
 
@@ -97,7 +99,7 @@ export async function adminListAppointments(req, res) {
     res.json({ appointments });
   } catch (error) {
     console.error("Admin list appointments error:", error);
-    res.status(500).json({ error: "Internal server error" });
+    sendApiError(res, error);
   }
 }
 
@@ -107,7 +109,7 @@ export async function adminListServices(req, res) {
     res.json({ services: services.map((service) => ({ ...service, is_active: toBool(service.is_active) })) });
   } catch (error) {
     console.error("Admin list services error:", error);
-    res.status(500).json({ error: "Internal server error" });
+    sendApiError(res, error);
   }
 }
 
@@ -136,7 +138,7 @@ export async function adminCreateService(req, res) {
     res.status(201).json({ service });
   } catch (error) {
     console.error("Admin create service error:", error);
-    res.status(500).json({ error: "Internal server error" });
+    sendApiError(res, error);
   }
 }
 
@@ -162,7 +164,7 @@ export async function adminCreateSlot(req, res) {
     res.status(201).json({ slot: rows[0] });
   } catch (error) {
     console.error("Admin create slot error:", error);
-    res.status(500).json({ error: "Internal server error" });
+    sendApiError(res, error);
   }
 }
 
@@ -190,7 +192,7 @@ export async function adminUpdateSlot(req, res) {
     res.json({ slot: rows[0] });
   } catch (error) {
     console.error("Admin update slot error:", error);
-    res.status(500).json({ error: "Internal server error" });
+    sendApiError(res, error);
   }
 }
 
@@ -200,7 +202,6 @@ export async function adminDeleteSlot(req, res) {
     res.json({ success: true });
   } catch (error) {
     console.error("Admin delete slot error:", error);
-    res.status(500).json({ error: "Internal server error" });
+    sendApiError(res, error);
   }
 }
-

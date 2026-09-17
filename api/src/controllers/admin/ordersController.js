@@ -1,12 +1,11 @@
+import { sendApiError } from "../../utils/apiError.js";
 // api/src/controllers/admin/ordersController.js
 import { adminOrdersService } from "../../services/admin/adminOrders.service.js";
 import { sendAdminOrderNotificationEmail } from "../../services/email/adminOrderNotifications.service.js";
 
 function sendError(res, error) {
-  const code = error.statusCode || 500;
-  const payload = { error: error.message || "Internal server error" };
-  if (error.details) payload.details = error.details;
-  return res.status(code).json(payload);
+  console.error("Admin request error:", error);
+  return sendApiError(res, error);
 }
 
 function safeVal(v) {

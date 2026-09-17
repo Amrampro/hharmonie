@@ -1,7 +1,7 @@
 // client/src/services/apiEndpoints.ts
 const API_BASE_URL =
   (import.meta as any).env?.VITE_API_URL?.replace(/\/+$/, "") ||
-  "http://localhost:3001/api";
+  (import.meta.env.PROD ? "/api" : "http://localhost:3001/api");
 
 export const apiEndpoints = {
   base: API_BASE_URL,

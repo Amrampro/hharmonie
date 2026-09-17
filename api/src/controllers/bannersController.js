@@ -1,3 +1,4 @@
+import { sendApiError } from "../utils/apiError.js";
 // api/src/controllers/bannersController.js
 import { query } from "../config/database.js";
 
@@ -38,7 +39,7 @@ export const getActiveBannerByPageName = async (req, res) => {
     res.json({ banner: rows[0] || null });
   } catch (error) {
     console.error("Get active banner error:", error);
-    res.status(500).json({ error: "Internal server error" });
+    sendApiError(res, error);
   }
 };
 
@@ -74,7 +75,7 @@ export const getBanners = async (req, res) => {
     res.json({ banners });
   } catch (error) {
     console.error("Get banners error:", error);
-    res.status(500).json({ error: "Internal server error" });
+    sendApiError(res, error);
   }
 };
 
@@ -88,7 +89,7 @@ export const getBannerById = async (req, res) => {
     res.json({ banner: rows[0] });
   } catch (error) {
     console.error("Get banner by id error:", error);
-    res.status(500).json({ error: "Internal server error" });
+    sendApiError(res, error);
   }
 };
 
@@ -138,7 +139,7 @@ export const createBanner = async (req, res) => {
     res.status(201).json({ banner });
   } catch (error) {
     console.error("Create banner error:", error);
-    res.status(500).json({ error: "Internal server error" });
+    sendApiError(res, error);
   }
 };
 
@@ -215,7 +216,7 @@ export const updateBanner = async (req, res) => {
     res.json({ banner });
   } catch (error) {
     console.error("Update banner error:", error);
-    res.status(500).json({ error: "Internal server error" });
+    sendApiError(res, error);
   }
 };
 
@@ -230,6 +231,6 @@ export const deleteBanner = async (req, res) => {
     res.json({ success: true });
   } catch (error) {
     console.error("Delete banner error:", error);
-    res.status(500).json({ error: "Internal server error" });
+    sendApiError(res, error);
   }
 };

@@ -1,3 +1,4 @@
+import { sendApiError } from "../../utils/apiError.js";
 // api/src/controllers/admin/ambassadorsController.js
 import {
   listAmbassadorsAdmin,
@@ -8,10 +9,8 @@ import { query } from "../../config/database.js";
 import { sendAmbassadorPayoutEmail } from "../../services/email/ambassadorPayout.service.js";
 
 function sendError(res, error) {
-  const code = error.statusCode || 500;
-  const payload = { error: error.message || "Internal server error" };
-  if (error.details) payload.details = error.details;
-  return res.status(code).json(payload);
+  console.error("Admin request error:", error);
+  return sendApiError(res, error);
 }
 
 export const getAmbassadors = async (req, res) => {
@@ -104,8 +103,14 @@ export const payAmbassador = async (req, res) => {
       note: note ?? null,
     });
 
-    // email
-    await sendAmbassadorPayoutEmail({ ambassadorId: id, payout });
+    // The payout is already saved. An SMTP failure must not report a failed
+    // payment and encourage the administrator to submit it a second time.
+    try {
+      await sendAmbassadorPayoutEmail({ ambassadorId: id, payout });
+    } catch (emailError) {
+      console.error("Payout saved, notification email failed:", emailError);
+      return res.json({ message: "Payout created", payout, warning: "Paiement enregistré, mais l’e-mail de confirmation n’a pas pu être envoyé." });
+    }
 
     return res.json({ message: "Payout created", payout });
   } catch (e) {

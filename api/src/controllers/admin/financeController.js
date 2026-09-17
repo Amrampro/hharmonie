@@ -1,11 +1,10 @@
+import { sendApiError } from "../../utils/apiError.js";
 // api/src/controllers/admin/financeController.js
 import { adminFinanceService } from "../../services/admin/adminFinance.service.js";
 
 function sendError(res, error) {
-  const code = error.statusCode || 500;
-  const payload = { error: error.message || "Internal server error" };
-  if (error.details) payload.details = error.details;
-  return res.status(code).json(payload);
+  console.error("Admin request error:", error);
+  return sendApiError(res, error);
 }
 
 export const listFinance = async (req, res) => {

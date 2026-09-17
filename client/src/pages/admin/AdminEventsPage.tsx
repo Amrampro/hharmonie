@@ -1,3 +1,4 @@
+import { useAdminAction } from "../../hooks/useAdminAction";
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { Plus, Trash2 } from "lucide-react";
@@ -21,6 +22,7 @@ const emptyForm = {
 };
 
 export default function AdminEventsPage() {
+  const { error, busy, run } = useAdminAction();
   const [events, setEvents] = useState<EventItem[]>([]);
   const [form, setForm] = useState(emptyForm);
 
@@ -30,32 +32,39 @@ export default function AdminEventsPage() {
   };
 
   useEffect(() => {
-    void load();
+    void run(load);
   }, []);
 
   const createEvent = async (event: FormEvent) => {
     event.preventDefault();
-    await eventService.adminCreate({
-      ...form,
-      capacity: form.capacity ? Number(form.capacity) : null,
-      price: Number(form.price || 0),
-    } as any);
-    setForm(emptyForm);
-    await load();
+    await run(async () => {
+      await eventService.adminCreate({
+        ...form,
+        capacity: form.capacity ? Number(form.capacity) : null,
+        price: Number(form.price || 0),
+      } as any);
+      setForm(emptyForm);
+      await load();
+    });
   };
 
   const toggleStatus = async (eventItem: EventItem) => {
-    await eventService.adminUpdate(eventItem.id, { status: eventItem.status === "published" ? "draft" : "published" });
-    await load();
+    await run(async () => {
+      await eventService.adminUpdate(eventItem.id, { status: eventItem.status === "published" ? "draft" : "published" });
+      await load();
+    });
   };
 
   const deleteEvent = async (id: string) => {
-    await eventService.adminDelete(id);
-    await load();
+    await run(async () => {
+      await eventService.adminDelete(id);
+      await load();
+    });
   };
 
   return (
     <div className="space-y-8">
+      {error && <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-red-700">{error}</div>}
       <div>
         <span className="text-sm font-semibold text-slate-400 uppercase">Contenu</span>
         <h1 className="text-3xl font-bold text-slate-900">Événements H&H</h1>
@@ -88,7 +97,7 @@ export default function AdminEventsPage() {
               <option value="draft">Brouillon</option>
             </select>
           </div>
-          <button className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#C99A32] px-4 py-3 font-semibold text-white">
+          <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#C99A32] px-4 py-3 font-semibold text-white">
             <Plus size={18} /> Créer
           </button>
         </div>
@@ -104,10 +113,10 @@ export default function AdminEventsPage() {
                 <p className="m-0 text-sm text-slate-500">{eventItem.short_description}</p>
               </div>
               <span>{new Date(eventItem.starts_at).toLocaleString("fr-FR")}</span>
-              <button type="button" onClick={() => toggleStatus(eventItem)} className="rounded-lg border px-3 py-2">
+              <button disabled={busy} type="button" onClick={() => toggleStatus(eventItem)} className="rounded-lg border px-3 py-2">
                 {eventItem.status}
               </button>
-              <button type="button" onClick={() => deleteEvent(eventItem.id)} className="inline-flex items-center justify-center rounded-lg border p-2 text-red-600">
+              <button disabled={busy} type="button" onClick={() => deleteEvent(eventItem.id)} className="inline-flex items-center justify-center rounded-lg border p-2 text-red-600">
                 <Trash2 size={17} />
               </button>
             </div>

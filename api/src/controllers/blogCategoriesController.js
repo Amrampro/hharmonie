@@ -1,3 +1,4 @@
+import { sendApiError } from "../utils/apiError.js";
 // api/src/controllers/blogCategoriesController.js
 import { query } from "../config/database.js";
 
@@ -32,7 +33,7 @@ export const getBlogCategories = async (req, res) => {
     res.json({ categories });
   } catch (error) {
     console.error("Get blog categories error:", error);
-    res.status(500).json({ error: "Internal server error" });
+    sendApiError(res, error);
   }
 };
 
@@ -82,7 +83,7 @@ export const createBlogCategory = async (req, res) => {
     res.status(201).json({ category });
   } catch (error) {
     console.error("Create blog category error:", error);
-    res.status(500).json({ error: "Internal server error" });
+    sendApiError(res, error);
   }
 };
 
@@ -164,7 +165,7 @@ export const updateBlogCategory = async (req, res) => {
     res.json({ category });
   } catch (error) {
     console.error("Update blog category error:", error);
-    res.status(500).json({ error: "Internal server error" });
+    sendApiError(res, error);
   }
 };
 
@@ -194,6 +195,6 @@ export const deleteBlogCategory = async (req, res) => {
     res.json({ success: true });
   } catch (error) {
     console.error("Delete blog category error:", error);
-    res.status(500).json({ error: "Internal server error" });
+    sendApiError(res, error);
   }
 };
