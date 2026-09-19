@@ -164,80 +164,6 @@ export function HomePage() {
       <PageBanner />
 
 
-
-      {/* BRAND STORY */}
-      <section
-        style={{
-          backgroundColor: theme.colors.background.primary,
-          padding: `${theme.spacing["2xl"]} ${theme.spacing.lg}`,
-        }}
-      >
-        <div style={{ maxWidth: theme.container.maxWidth, margin: "0 auto", textAlign: "center" }}>
-          <h2 style={{ ...theme.heading.h2, marginBottom: theme.spacing.lg, color: theme.colors.primary.main }}>
-            Hormones & Harmonie
-          </h2>
-          <p
-            style={{
-              fontFamily: theme.typography.fontFamily.body,
-              fontSize: theme.typography.fontSize.lg,
-              color: theme.colors.text.secondary,
-              lineHeight: theme.typography.lineHeight.body,
-              maxWidth: "860px",
-              margin: `0 auto ${theme.spacing["3xl"]}`,
-              whiteSpace: "pre-line",
-            }}
-          >
-            {home_text || "Comprendre son corps. Retrouver son équilibre. Avancer naturellement. H&H accompagne les femmes, les hommes et les couples avec des tisanes, des compléments alimentaires et un suivi personnalisé autour de l'équilibre hormonal, du cycle et de la fertilité."}
-          </p>
-          <div style={{ display: "flex", justifyContent: "center", gap: theme.spacing.md, flexWrap: "wrap" }}>
-            <Button variant="primary" size="large" onClick={() => navigate("/shop")}>
-              Découvrir nos produits
-            </Button>
-            <Button variant="outline" size="large" onClick={() => navigate("/consultation")}>
-              Prendre rendez-vous
-            </Button>
-          </div>
-        </div>
-      </section>
-
-      <section
-        style={{
-          backgroundColor: theme.colors.background.tertiary,
-          padding: `${theme.spacing["3xl"]} ${theme.spacing.lg}`,
-        }}
-      >
-        <div
-          style={{
-            maxWidth: theme.container.maxWidth,
-            margin: "0 auto",
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
-            gap: theme.spacing.xl,
-          }}
-        >
-          {[
-            ["SOPK / SMOP", "Accompagner les déséquilibres fréquents du cycle."],
-            ["Fibrome & myome", "Soutenir le confort féminin avec une approche globale."],
-            ["Fertilité", "Aider les femmes, les hommes et les couples dans leur parcours."],
-            ["Endométriose", "Apporter des pistes naturelles en complément du suivi médical."],
-          ].map(([title, text]) => (
-            <article
-              key={title}
-              style={{
-                background: theme.colors.background.secondary,
-                border: `1px solid ${theme.colors.border.light}`,
-                borderRadius: theme.borderRadius.lg,
-                padding: theme.spacing.xl,
-              }}
-            >
-              <HeartPulse size={28} color={theme.colors.accent.main} />
-              <h3 style={{ ...theme.heading.h5, color: theme.colors.primary.main }}>{title}</h3>
-              <p style={{ color: theme.colors.text.secondary }}>{text}</p>
-            </article>
-          ))}
-        </div>
-      </section>
-
       {/* FEATURED PRODUCTS */}
       <section
         style={{
@@ -248,7 +174,7 @@ export function HomePage() {
         <div style={{ maxWidth: theme.container.maxWidth, margin: "0 auto" }}>
           <div style={{ textAlign: "center", marginBottom: theme.spacing["3xl"] }}>
             <h2 style={{ ...theme.heading.h2, marginBottom: theme.spacing.lg, color: theme.colors.primary.main }}>
-              Nos produits phares
+              Nos tisanes phares
             </h2>
 
             {loadingCategories ? (
@@ -347,6 +273,78 @@ export function HomePage() {
               Aucun produit à afficher.
             </div>
           )}
+        </div>
+      </section>
+      {/* BRAND STORY */}
+      {/* <section
+        style={{
+          backgroundColor: theme.colors.background.primary,
+          padding: `${theme.spacing["2xl"]} ${theme.spacing.lg}`,
+        }}
+      >
+        <div style={{ maxWidth: theme.container.maxWidth, margin: "0 auto", textAlign: "center" }}>
+          <h2 style={{ ...theme.heading.h2, marginBottom: theme.spacing.lg, color: theme.colors.primary.main }}>
+            Hormones & Harmonie
+          </h2>
+          <p
+            style={{
+              fontFamily: theme.typography.fontFamily.body,
+              fontSize: theme.typography.fontSize.lg,
+              color: theme.colors.text.secondary,
+              lineHeight: theme.typography.lineHeight.body,
+              maxWidth: "860px",
+              margin: `0 auto ${theme.spacing["3xl"]}`,
+              whiteSpace: "pre-line",
+            }}
+          >
+            {home_text || "Comprendre son corps. Retrouver son équilibre. Avancer naturellement. H&H accompagne les femmes, les hommes et les couples avec des tisanes, des compléments alimentaires et un suivi personnalisé autour de l'équilibre hormonal, du cycle et de la fertilité."}
+          </p>
+          <div style={{ display: "flex", justifyContent: "center", gap: theme.spacing.md, flexWrap: "wrap" }}>
+            <Button variant="primary" size="large" onClick={() => navigate("/shop")}>
+              Découvrir nos produits
+            </Button>
+            <Button variant="outline" size="large" onClick={() => navigate("/consultation")}>
+              Prendre rendez-vous
+            </Button>
+          </div>
+        </div>
+      </section> */}
+
+      <section
+        style={{
+          backgroundColor: theme.colors.background.tertiary,
+          padding: `${theme.spacing["3xl"]} ${theme.spacing.lg}`,
+        }}
+      >
+        <div
+          style={{
+            maxWidth: theme.container.maxWidth,
+            margin: "0 auto",
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+            gap: theme.spacing.xl,
+          }}
+        >
+          {[
+            ["SOPK / SMOP", "Accompagner les déséquilibres fréquents du cycle."],
+            ["Fibrome & myome", "Soutenir le confort féminin avec une approche globale."],
+            ["Fertilité", "Aider les femmes, les hommes et les couples dans leur parcours."],
+            ["Endométriose", "Apporter des pistes naturelles en complément du suivi médical."],
+          ].map(([title, text]) => (
+            <article
+              key={title}
+              style={{
+                background: theme.colors.background.secondary,
+                border: `1px solid ${theme.colors.border.light}`,
+                borderRadius: theme.borderRadius.lg,
+                padding: theme.spacing.xl,
+              }}
+            >
+              <HeartPulse size={28} color={theme.colors.accent.main} />
+              <h3 style={{ ...theme.heading.h5, color: theme.colors.primary.main }}>{title}</h3>
+              <p style={{ color: theme.colors.text.secondary }}>{text}</p>
+            </article>
+          ))}
         </div>
       </section>
 
