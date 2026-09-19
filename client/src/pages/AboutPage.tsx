@@ -72,7 +72,7 @@ export function AboutPage() {
               <h2
                 style={{ ...theme.heading.h2, marginBottom: theme.spacing.xl }}
               >
-                Notre Histoire
+                Mon Histoire
               </h2>
 
               <div
