@@ -6,27 +6,27 @@ const pillars = [
   {
     icon: Leaf,
     title: "1. Phytothérapie",
-    text: "Des plantes médicinales sélectionnées et formulées selon des besoins spécifiques.",
+    text: "Nous utilisons les bienfaits des plantes, notamment à travers nos tisanes H&H;, sélectionnées et formulées selon des besoins spécifiques.",
   },
   {
     icon: Sprout,
     title: "2. Gemmothérapie",
-    text: "Des macérats de bourgeons et jeunes pousses pour accompagner le terrain en douceur.",
+    text: "Elle utilise des macérats issus de bourgeons et de jeunes pousses. Ils sont sélectionnés pour compléter l'accompagnement selon les besoins de chaque profil.",
   },
   {
     icon: Pill,
     title: "3. Nutrithérapie",
-    text: "Des vitamines, minéraux, acides gras et antioxydants ciblés pour soutenir l'équilibre au quotidien.",
+    text: "Elle repose sur une sélection ciblée de vitamines, minéraux, acides gras et antioxydants afin de compléter les apports nutritionnels et soutenir le fonctionnement normal de l'organisme.",
   },
 ];
 
 export function ApproachPage() {
   return (
     <div>
-      <section className="hh-approach-hero">
+      {/* <section className="hh-approach-hero">
         <div>
           <h1>Notre approche</h1>
-          <p className="script">Une approche naturelle, globale et personnalisée</p>
+          <p className="script">Comment sont composés nos packs ?</p>
           <p>
             Chez Hormones & Harmonie, les packs reposent sur trois piliers de la naturopathie.
             La sélection dépend du profil, des symptômes dominants, du terrain, du projet de
@@ -34,15 +34,15 @@ export function ApproachPage() {
           </p>
         </div>
         <img src={approachImage} alt="Approche naturelle Hormones & Harmonie" />
-      </section>
+      </section> */}
 
       <section className="hh-section">
         <div className="hh-section-heading">
           <h2>Comment sont composés nos packs ?</h2>
           <p>
-            Nos packs associent trois approches complémentaires pour agir en profondeur et
-            soutenir votre équilibre hormonal naturellement.
+            Chez <b>Hormones & Harmonie,</b> nos packs reposent sur <b>3 piliers de la naturopathie : la phytothérapie, la gemmothérapie et la nutrithérapie.</b>
           </p>
+          <p>Parce que deux personnes ayant la même problématique n'ont pas forcément les mêmes besoins, nous sélectionnons et associons ces différentes approches en tenant compte <b>du profil, des besoins, des symptômes dominants et du projet de grossesse lorsqu'il existe.</b></p>
         </div>
         <div className="hh-pillar-grid">
           {pillars.map((pillar) => (
@@ -56,8 +56,7 @@ export function ApproachPage() {
         <div className="hh-soft-note">
           <Heart size={24} />
           <span>
-            Notre objectif : associer ces approches de façon cohérente et personnalisée
-            pour offrir un accompagnement complet, doux et durable.
+            Notre objectif : associer ces trois piliers de façon cohérente afin de proposer un accompagnement global et adapté à chaque profil.
           </span>
         </div>
       </section>
