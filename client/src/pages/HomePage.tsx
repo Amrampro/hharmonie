@@ -163,7 +163,40 @@ export function HomePage() {
     <div style={{ position: "relative" }}>
       <PageBanner />
 
-
+      {/* BRAND STORY */}
+      <section
+        style={{
+          backgroundColor: theme.colors.background.primary,
+          padding: `${theme.spacing["2xl"]} ${theme.spacing.lg}`,
+        }}
+      >
+        <div style={{ maxWidth: theme.container.maxWidth, margin: "0 auto", textAlign: "center" }}>
+          <h2 style={{ ...theme.heading.h2, marginBottom: theme.spacing.lg, color: theme.colors.primary.main }}>
+            La naturopathie au service de votre équilibre hormonal et de votre fertilité ».
+          </h2>
+          {/* <p
+            style={{
+              fontFamily: theme.typography.fontFamily.body,
+              fontSize: theme.typography.fontSize.lg,
+              color: theme.colors.text.secondary,
+              lineHeight: theme.typography.lineHeight.body,
+              maxWidth: "860px",
+              margin: `0 auto ${theme.spacing["3xl"]}`,
+              whiteSpace: "pre-line",
+            }}
+          >
+            {home_text || "Comprendre son corps. Retrouver son équilibre. Avancer naturellement. H&H accompagne les femmes, les hommes et les couples avec des tisanes, des compléments alimentaires et un suivi personnalisé autour de l'équilibre hormonal, du cycle et de la fertilité."}
+          </p>
+          <div style={{ display: "flex", justifyContent: "center", gap: theme.spacing.md, flexWrap: "wrap" }}>
+            <Button variant="primary" size="large" onClick={() => navigate("/shop")}>
+              Découvrir nos produits
+            </Button>
+            <Button variant="outline" size="large" onClick={() => navigate("/consultation")}>
+              Prendre rendez-vous
+            </Button>
+          </div> */}
+        </div>
+      </section>
       {/* FEATURED PRODUCTS */}
       <section
         style={{
@@ -275,40 +308,7 @@ export function HomePage() {
           )}
         </div>
       </section>
-      {/* BRAND STORY */}
-      {/* <section
-        style={{
-          backgroundColor: theme.colors.background.primary,
-          padding: `${theme.spacing["2xl"]} ${theme.spacing.lg}`,
-        }}
-      >
-        <div style={{ maxWidth: theme.container.maxWidth, margin: "0 auto", textAlign: "center" }}>
-          <h2 style={{ ...theme.heading.h2, marginBottom: theme.spacing.lg, color: theme.colors.primary.main }}>
-            Hormones & Harmonie
-          </h2>
-          <p
-            style={{
-              fontFamily: theme.typography.fontFamily.body,
-              fontSize: theme.typography.fontSize.lg,
-              color: theme.colors.text.secondary,
-              lineHeight: theme.typography.lineHeight.body,
-              maxWidth: "860px",
-              margin: `0 auto ${theme.spacing["3xl"]}`,
-              whiteSpace: "pre-line",
-            }}
-          >
-            {home_text || "Comprendre son corps. Retrouver son équilibre. Avancer naturellement. H&H accompagne les femmes, les hommes et les couples avec des tisanes, des compléments alimentaires et un suivi personnalisé autour de l'équilibre hormonal, du cycle et de la fertilité."}
-          </p>
-          <div style={{ display: "flex", justifyContent: "center", gap: theme.spacing.md, flexWrap: "wrap" }}>
-            <Button variant="primary" size="large" onClick={() => navigate("/shop")}>
-              Découvrir nos produits
-            </Button>
-            <Button variant="outline" size="large" onClick={() => navigate("/consultation")}>
-              Prendre rendez-vous
-            </Button>
-          </div>
-        </div>
-      </section> */}
+
 
       <section
         style={{
