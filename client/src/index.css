@@ -147,6 +147,22 @@ body {
   margin-bottom: 1rem;
 }
 
+.consultation-fields { border: 0; padding: 0; min-width: 0; }
+.consultation-questionnaire { display: grid; gap: 1.5rem; margin: 1.5rem 0; }
+.consultation-questionnaire fieldset { min-width: 0; border: 0; padding: 0; }
+.consultation-questionnaire legend { font-weight: 600; margin-bottom: 0.65rem; }
+.consultation-question { display: grid; gap: 0.6rem; font-weight: 600; }
+.consultation-questionnaire textarea { margin: 0; font-weight: 400; }
+.consultation-choices { display: flex; flex-wrap: wrap; gap: 1.5rem; }
+.consultation-choices label, .consultation-reasons label { display: flex; align-items: center; gap: 0.6rem; }
+.consultation-reasons { display: grid; gap: 0.75rem; margin: 0.75rem 0; }
+.hh-consultation input[type="radio"], .hh-consultation input[type="checkbox"] { width: 1.1rem; min-height: 1.1rem; height: 1.1rem; padding: 0; flex-shrink: 0; accent-color: var(--hh-mauve-strong); }
+.consultation-documents { display: grid; gap: 0.5rem; font-weight: 400; }
+.consultation-documents li { display: flex; align-items: center; gap: 1rem; justify-content: space-between; }
+.consultation-documents span { overflow-wrap: anywhere; min-width: 0; }
+.consultation-documents button { text-decoration: underline; flex-shrink: 0; }
+.hh-consultation button:disabled { opacity: 0.55; cursor: not-allowed !important; }
+
 .hh-error {
   color: #a84747;
   font-weight: 700;

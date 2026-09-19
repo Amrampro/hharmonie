@@ -6,7 +6,7 @@ export function readExpectedSchema() {
   return [...source.matchAll(/CREATE TABLE (\w+) \(([\s\S]*?)\) ENGINE=[^;]+;/g)].map((match) => ({
     name: match[1],
     create: match[0].replace("CREATE TABLE ", "CREATE TABLE IF NOT EXISTS "),
-    columns: [...match[2].matchAll(/^  (`?\w+`?) ((?:VARCHAR|CHAR|TEXT|LONGTEXT|INT|TINYINT|DECIMAL|JSON|ENUM|DATETIME|TIMESTAMP|DATE|TIME)\b[^\r\n]*)/gm)].map((column) => ({
+    columns: [...match[2].matchAll(/^  (`?\w+`?) ((?:VARCHAR|CHAR|TEXT|LONGTEXT|MEDIUMBLOB|INT|TINYINT|DECIMAL|JSON|ENUM|DATETIME|TIMESTAMP|DATE|TIME)\b[^\r\n]*)/gm)].map((column) => ({
       name: column[1].replaceAll("`", ""),
       definition: column[2].replace(/,$/, ""),
     })),

@@ -68,4 +68,4 @@ Si le lien TikTok échoue encore, relever dans les logs Node la ligne `Create le
 - Le contrôle TypeScript global contient des erreurs antérieures à cet audit (59 au départ). La comparaison avec HEAD permet de vérifier qu'aucune nouvelle erreur n'est introduite ; le problème de typage des en-têtes HTTP a également été corrigé.
 
 Pour les tests unitaires : `npm test` depuis le dossier API.
-Pour inclure les tests SQL, définir `RUN_DB_TESTS=1` et les variables `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` d'une base de test. Ces tests utilisent des tables temporaires et un mode strict limité à leur connexion. Ils nécessitent le droit `CREATE TEMPORARY TABLES`.
+Pour inclure les tests SQL, définir `RUN_DB_TESTS=1` et les variables `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` d'une base de test. Ces tests utilisent des tables temporaires et un mode strict limité à leur connexion. Ils nécessitent le droit `CREATE TEMPORARY TABLES`. Le test de migration du questionnaire crée en plus un schéma isolé nommé `hh_consultation_test_<identifiant aléatoire>`, qu'il supprime à la fin ; il nécessite les droits CREATE/DROP DATABASE sur le serveur de test.

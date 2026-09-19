@@ -1,5 +1,9 @@
 import { sendApiError } from "../utils/apiError.js";
 import { getConnection, query } from "../config/database.js";
+import { randomUUID } from "node:crypto";
+import { Buffer } from "node:buffer";
+import { validateConsultation } from "../utils/consultationForm.js";
+import { releaseTransaction } from "../utils/transaction.js";
 
 const toBool = (value) => value === true || value === 1 || value === "1";
 const toSlug = (value) =>
@@ -12,7 +16,7 @@ const toSlug = (value) =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
 
-const appointmentNumber = () => `RDV-${Date.now().toString(36).toUpperCase()}`;
+const appointmentNumber = () => `RDV-${randomUUID().toUpperCase()}`;
 
 export async function listServices(req, res) {
   try {
@@ -51,39 +55,55 @@ export async function listSlots(req, res) {
 
 export async function bookAppointment(req, res) {
   let connection;
+  let committed = false;
   try {
-    const { service_id, slot_id, first_name, last_name, email, phone = null, message = null } = req.body ?? {};
-    if (!service_id || !slot_id || !first_name || !last_name || !email) {
-      return res.status(400).json({ error: "Missing required fields" });
-    }
+    const data = validateConsultation(req.body ?? {}, req.files ?? []);
+    const { service_id, slot_id, first_name, last_name, email, phone } = data;
 
     connection = await getConnection();
     await connection.beginTransaction();
     const [slots] = await connection.execute(
-      "SELECT * FROM appointment_slots WHERE id = ? AND service_id = ? AND status = 'available' FOR UPDATE",
+      "SELECT * FROM appointment_slots WHERE id = ? AND service_id = ? AND status = 'available' AND TIMESTAMP(available_date, start_time) > NOW() FOR UPDATE",
       [slot_id, service_id]
     );
     if (!slots.length) {
-      await connection.rollback();
       return res.status(409).json({ error: "Slot unavailable" });
     }
 
     const number = appointmentNumber();
     await connection.execute("UPDATE appointment_slots SET status = 'booked' WHERE id = ?", [slot_id]);
-    await connection.execute(
+    const [created] = await connection.execute(
       `INSERT INTO appointments
-       (appointment_number, service_id, slot_id, first_name, last_name, email, phone, message, status)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'confirmed')`,
-      [number, service_id, slot_id, first_name, last_name, email, phone, message]
+       (appointment_number, service_id, slot_id, first_name, last_name, email, phone,
+        gender, age, baby_project, main_concern, consulted_professional, exams_description,
+        has_diagnosis, diagnosis_details, consultation_reasons, consultation_reason_other, status)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'confirmed')`,
+      [number, service_id, slot_id, first_name, last_name, email, phone,
+        data.gender, data.age, data.baby_project, data.main_concern, data.consulted_professional,
+        data.exams_description, data.has_diagnosis, data.diagnosis_details,
+        JSON.stringify(data.consultation_reasons), data.consultation_reason_other]
     );
+    for (const file of req.files ?? []) {
+      const name = file.originalname.replace(/[\\/\x00-\x1f\x7f]/g, "_").slice(0, 180) || "document";
+      const documentId = randomUUID();
+      await connection.execute(
+        "INSERT INTO appointment_documents (id, appointment_id, original_name, content_type, size_bytes) VALUES (?, ?, ?, ?, ?)",
+        [documentId, created.insertId, name, file.mimetype, file.buffer.length]
+      );
+      // Small packets also work on hosts configured with max_allowed_packet=1MB.
+      const chunkSize = 512 * 1024;
+      for (let offset = 0; offset < file.buffer.length; offset += chunkSize) {
+        await connection.execute("INSERT INTO appointment_document_chunks (document_id, chunk_index, content) VALUES (?, ?, ?)", [documentId, offset / chunkSize, file.buffer.subarray(offset, offset + chunkSize)]);
+      }
+    }
     await connection.commit();
+    committed = true;
     res.status(201).json({ appointment_number: number });
   } catch (error) {
-    if (connection) await connection.rollback();
-    console.error("Book appointment error:", error);
+    console.error("Book appointment error:", { code: error.code, message: error.statusCode === 400 ? error.message : "Reservation failed" });
     sendApiError(res, error);
   } finally {
-    connection?.release();
+    await releaseTransaction(connection, committed);
   }
 }
 
@@ -96,9 +116,29 @@ export async function adminListAppointments(req, res) {
        INNER JOIN appointment_slots s ON s.id = a.slot_id
        ORDER BY s.available_date DESC, s.start_time DESC`
     );
-    res.json({ appointments });
+    const documents = await query("SELECT id, appointment_id, original_name, content_type, size_bytes FROM appointment_documents ORDER BY created_at ASC");
+    res.json({ appointments: appointments.map((appointment) => ({
+      ...appointment,
+      consultation_reasons: typeof appointment.consultation_reasons === "string" ? JSON.parse(appointment.consultation_reasons) : appointment.consultation_reasons ?? [],
+      documents: documents.filter((document) => String(document.appointment_id) === String(appointment.id)),
+    })) });
   } catch (error) {
     console.error("Admin list appointments error:", error);
+    sendApiError(res, error);
+  }
+}
+
+export async function adminDownloadDocument(req, res) {
+  try {
+    const [document] = await query("SELECT original_name, content_type FROM appointment_documents WHERE id = ?", [req.params.id]);
+    if (!document) return res.status(404).json({ error: "Document introuvable." });
+    const chunks = await query("SELECT content FROM appointment_document_chunks WHERE document_id = ? ORDER BY chunk_index ASC", [req.params.id]);
+    res.setHeader("Content-Type", document.content_type);
+    res.setHeader("Content-Disposition", `attachment; filename="document"; filename*=UTF-8''${encodeURIComponent(document.original_name).replace(/'/g, "%27")}`);
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    res.setHeader("Cache-Control", "no-store");
+    res.send(Buffer.concat(chunks.map((chunk) => chunk.content)));
+  } catch (error) {
     sendApiError(res, error);
   }
 }

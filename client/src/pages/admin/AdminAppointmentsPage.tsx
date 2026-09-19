@@ -2,7 +2,9 @@ import { useAdminAction } from "../../hooks/useAdminAction";
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { CalendarDays, Plus, Trash2 } from "lucide-react";
-import { appointmentService, type Appointment, type AppointmentService, type AppointmentSlot } from "../../services/appointmentService";
+import { appointmentService, consultationReasonLabels, type Appointment, type AppointmentService, type AppointmentSlot } from "../../services/appointmentService";
+
+const yesNo = (value: boolean | number | null) => value == null ? "Non renseigné" : value === true || value === 1 ? "Oui" : "Non";
 
 export default function AdminAppointmentsPage() {
   const { error, busy, run } = useAdminAction();
@@ -123,12 +125,36 @@ export default function AdminAppointmentsPage() {
         <h2 className="mb-4 text-xl font-semibold">Réservations reçues</h2>
         <div className="grid gap-3">
           {appointments.map((appointment) => (
-            <div key={appointment.id} className="grid gap-2 rounded-lg border border-slate-100 p-3 md:grid-cols-[1fr_1fr_1fr_1fr]">
-              <strong>{appointment.appointment_number}</strong>
-              <span>{appointment.first_name} {appointment.last_name}</span>
-              <span>{appointment.service_name}</span>
-              <span>{new Date(appointment.available_date).toLocaleDateString("fr-FR")} {appointment.start_time.slice(0, 5)}</span>
-            </div>
+            <details key={appointment.id} className="rounded-lg border border-slate-200 p-4">
+              <summary className="cursor-pointer space-y-1">
+                <strong>{appointment.first_name} {appointment.last_name}</strong>
+                <span className="ml-3">{appointment.service_name} — {new Date(appointment.available_date).toLocaleDateString("fr-FR")} {appointment.start_time.slice(0, 5)}</span>
+                <span className="block break-all text-sm text-slate-500">{appointment.appointment_number} · {appointment.status}</span>
+              </summary>
+              <dl className="mt-5 grid gap-4 sm:grid-cols-2">
+                {[
+                  ["E-mail", appointment.email], ["Téléphone", appointment.phone],
+                  ["1. Vous êtes", appointment.gender === "female" ? "Femme" : appointment.gender === "male" ? "Homme" : null],
+                  ["2. Âge", appointment.age == null ? null : `${appointment.age} ans`],
+                  ["3. Projet bébé", yesNo(appointment.baby_project)],
+                  ["4. Préoccupation principale", appointment.main_concern],
+                  ["5. Professionnel de santé déjà consulté", yesNo(appointment.consulted_professional)],
+                  ["6. Examens déjà réalisés", appointment.exams_description],
+                  ["7. Diagnostic reçu", yesNo(appointment.has_diagnosis)],
+                  ["Précisions sur le diagnostic", appointment.diagnosis_details],
+                  ["8. Motifs de consultation", (appointment.consultation_reasons ?? []).map((reason) => consultationReasonLabels[reason] || reason).join("\n")],
+                  ["Autre motif", appointment.consultation_reason_other],
+                  ...(appointment.message ? [["Message (ancien formulaire)", appointment.message]] : []),
+                ].map(([label, value]) => <div key={label} className="min-w-0"><dt className="font-semibold text-slate-700">{label}</dt><dd className="mt-1 whitespace-pre-wrap break-words text-slate-600">{value || "Non renseigné"}</dd></div>)}
+              </dl>
+              <div className="mt-5 border-t pt-4">
+                <h3 className="font-semibold">Documents d’examens</h3>
+                {appointment.documents?.length ? <ul className="mt-2 space-y-2">{appointment.documents.map((document) => <li key={document.id}>
+                  <button type="button" disabled={busy} className="break-all text-left text-indigo-700 underline" onClick={() => run(() => appointmentService.adminDownloadDocument(document))}>Télécharger {document.original_name}</button>
+                  <span className="ml-2 text-sm text-slate-500">({Math.ceil(document.size_bytes / 1024)} Ko)</span>
+                </li>)}</ul> : <p className="mt-1 text-slate-500">Aucun document joint.</p>}
+              </div>
+            </details>
           ))}
           {!appointments.length && <p className="text-slate-500">Aucune réservation pour le moment.</p>}
         </div>

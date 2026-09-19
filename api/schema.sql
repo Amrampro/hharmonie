@@ -2,6 +2,8 @@ CREATE DATABASE IF NOT EXISTS hormone CHARACTER SET utf8mb4 COLLATE utf8mb4_unic
 USE hormone;
 
 SET FOREIGN_KEY_CHECKS = 0;
+DROP TABLE IF EXISTS appointment_document_chunks;
+DROP TABLE IF EXISTS appointment_documents;
 DROP TABLE IF EXISTS appointments;
 DROP TABLE IF EXISTS appointment_slots;
 DROP TABLE IF EXISTS appointment_services;
@@ -432,9 +434,38 @@ CREATE TABLE appointments (
   email VARCHAR(190) NOT NULL,
   phone VARCHAR(30) DEFAULT NULL,
   message TEXT DEFAULT NULL,
+  gender ENUM('female','male') DEFAULT NULL,
+  age TINYINT UNSIGNED DEFAULT NULL,
+  baby_project TINYINT(1) DEFAULT NULL,
+  main_concern TEXT DEFAULT NULL,
+  consulted_professional TINYINT(1) DEFAULT NULL,
+  exams_description TEXT DEFAULT NULL,
+  has_diagnosis TINYINT(1) DEFAULT NULL,
+  diagnosis_details TEXT DEFAULT NULL,
+  consultation_reasons JSON DEFAULT NULL,
+  consultation_reason_other TEXT DEFAULT NULL,
   status ENUM('confirmed','cancelled_by_client','cancelled_by_admin','completed','no_show') NOT NULL DEFAULT 'confirmed',
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   CONSTRAINT fk_appointments_service FOREIGN KEY (service_id) REFERENCES appointment_services(id) ON DELETE CASCADE,
   CONSTRAINT fk_appointments_slot FOREIGN KEY (slot_id) REFERENCES appointment_slots(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE appointment_documents (
+  id VARCHAR(36) NOT NULL PRIMARY KEY,
+  appointment_id INT NOT NULL,
+  original_name VARCHAR(180) NOT NULL,
+  content_type VARCHAR(50) NOT NULL,
+  size_bytes INT UNSIGNED NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_appointment_documents_appointment (appointment_id),
+  CONSTRAINT fk_appointment_documents_appointment FOREIGN KEY (appointment_id) REFERENCES appointments(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE appointment_document_chunks (
+  document_id VARCHAR(36) NOT NULL,
+  chunk_index INT UNSIGNED NOT NULL,
+  content MEDIUMBLOB NOT NULL,
+  PRIMARY KEY (document_id, chunk_index),
+  CONSTRAINT fk_appointment_document_chunks_document FOREIGN KEY (document_id) REFERENCES appointment_documents(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
