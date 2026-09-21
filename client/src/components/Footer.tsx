@@ -624,7 +624,7 @@ export function Footer({ onNavigate }: FooterProps) {
                 margin: 0,
               }}
             >
-              © 2026, Hormones & Harmonie. Tous droits réservés.
+              © 2026, Hormone & Harmonie. Tous droits réservés.
             </p>
           </div>
         </div>

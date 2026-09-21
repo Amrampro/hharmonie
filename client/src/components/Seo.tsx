@@ -5,7 +5,7 @@ import seoImage from "../assets/img/default_cat.jpg";
 export const SITE_URL = (
   (import.meta as any).env?.VITE_SITE_URL || "https://hormoneharmonie.com"
 ).replace(/\/+$/, "");
-export const SITE_NAME = "Hormones & Harmonie";
+export const SITE_NAME = "Hormone & Harmonie";
 
 const DEFAULT_IMAGE = `${SITE_URL}${seoImage.startsWith("/") ? seoImage : `/${seoImage}`}`;
 
@@ -16,57 +16,57 @@ type SeoMeta = {
 
 const indexablePages: Record<string, SeoMeta> = {
   "/": {
-    title: "Hormones & Harmonie | Équilibre hormonal naturel",
+    title: "Hormone & Harmonie | Équilibre hormonal naturel",
     description:
       "H&H accompagne le cycle, l'équilibre hormonal et la fertilité avec des produits naturels, des packs ciblés et des consultations personnalisées.",
   },
   "/shop": {
-    title: "Produits naturels pour l'équilibre hormonal | Hormones & Harmonie",
+    title: "Produits naturels pour l'équilibre hormonal | Hormone & Harmonie",
     description:
       "Découvrez les tisanes, compléments et packs H&H pour soutenir naturellement l'équilibre hormonal, le cycle, la fertilité et le bien-être intime.",
   },
   "/approach": {
-    title: "Notre approche | Hormones & Harmonie",
+    title: "Notre approche | Hormone & Harmonie",
     description:
       "Phytothérapie, gemmothérapie et nutrithérapie au service d'une approche naturelle, globale et personnalisée.",
   },
   "/about": {
-    title: "À propos | Hormones & Harmonie",
+    title: "À propos | Hormone & Harmonie",
     description:
       "Découvrez l'histoire, la mission et l'expertise H&H autour de l'équilibre hormonal naturel.",
   },
   "/consultation": {
-    title: "Consultation hormonale et fertilité | Hormones & Harmonie",
+    title: "Consultation hormonale et fertilité | Hormone & Harmonie",
     description:
-      "Réservez un bilan hormonal naturopathie ou un accompagnement fertilité personnalisé avec Hormones & Harmonie.",
+      "Réservez un bilan hormonal naturopathie ou un accompagnement fertilité personnalisé avec Hormone & Harmonie.",
   },
   "/events": {
-    title: "Événements et ateliers | Hormones & Harmonie",
+    title: "Événements et ateliers | Hormone & Harmonie",
     description:
       "Ateliers et rencontres H&H autour du cycle, des hormones, de la fertilité et des approches naturelles.",
   },
   "/blog": {
-    title: "Conseils hormones, cycle et fertilité | Hormones & Harmonie",
+    title: "Conseils hormones, cycle et fertilité | Hormone & Harmonie",
     description:
       "Conseils naturels, repères et articles autour du cycle, des hormones, de la fertilité et du bien-être intime.",
   },
   "/faqs": {
-    title: "FAQ | Hormones & Harmonie",
+    title: "FAQ | Hormone & Harmonie",
     description:
       "Réponses aux questions fréquentes sur les produits, commandes, consultations et accompagnements H&H.",
   },
   "/contact": {
-    title: "Contact | Hormones & Harmonie",
+    title: "Contact | Hormone & Harmonie",
     description:
       "Contactez H&H pour toute question sur la marque, les produits ou les rendez-vous.",
   },
   "/fidelity": {
-    title: "Programme fidélité | Hormones & Harmonie",
+    title: "Programme fidélité | Hormone & Harmonie",
     description:
       "Découvrez les avantages fidélité H&H pour vos commandes de produits naturels.",
   },
   "/ambassadors": {
-    title: "Ambassadeurs | Hormones & Harmonie",
+    title: "Ambassadeurs | Hormone & Harmonie",
     description:
       "Rejoignez le programme ambassadeur H&H et accompagnez la communauté autour du bien-être hormonal naturel.",
   },
@@ -82,7 +82,7 @@ function normalizePath(pathname: string) {
 function dynamicPage(pathname: string): SeoMeta | null {
   if (pathname.startsWith("/products/")) {
     return {
-      title: "Produit naturel | Hormones & Harmonie",
+      title: "Produit naturel | Hormone & Harmonie",
       description:
         "Découvrez ce produit H&H et ses informations détaillées pour accompagner naturellement votre équilibre.",
     };
@@ -90,7 +90,7 @@ function dynamicPage(pathname: string): SeoMeta | null {
 
   if (pathname.startsWith("/blog/")) {
     return {
-      title: "Conseil naturel | Hormones & Harmonie",
+      title: "Conseil naturel | Hormone & Harmonie",
       description:
         "Lisez cet article H&H autour du cycle, des hormones, de la fertilité et du bien-être naturel.",
     };
@@ -98,7 +98,7 @@ function dynamicPage(pathname: string): SeoMeta | null {
 
   if (pathname.startsWith("/events/")) {
     return {
-      title: "Événement H&H | Hormones & Harmonie",
+      title: "Événement H&H | Hormone & Harmonie",
       description:
         "Découvrez cet événement H&H autour du cycle, des hormones, de la fertilité et des approches naturelles.",
     };

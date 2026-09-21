@@ -310,7 +310,7 @@ export default function ProductDetailPage() {
           content={
             product.short_description ||
             product.description ||
-            `Découvrez ${product.name} sur Hormones & Harmonie.`
+            `Découvrez ${product.name} sur Hormone & Harmonie.`
           }
         />
         <meta property="og:url" content={`${SITE_URL}/products/${product.slug}`} />

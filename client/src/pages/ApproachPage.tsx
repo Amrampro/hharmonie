@@ -27,19 +27,19 @@ export function ApproachPage() {
           <h1>Notre approche</h1>
           <p className="script">Comment sont composés nos packs ?</p>
           <p>
-            Chez Hormones & Harmonie, les packs reposent sur trois piliers de la naturopathie.
+            Chez Hormone & Harmonie, les packs reposent sur trois piliers de la naturopathie.
             La sélection dépend du profil, des symptômes dominants, du terrain, du projet de
             grossesse lorsqu'il existe et des besoins nutritionnels.
           </p>
         </div>
-        <img src={approachImage} alt="Approche naturelle Hormones & Harmonie" />
+        <img src={approachImage} alt="Approche naturelle Hormone & Harmonie" />
       </section> */}
 
       <section className="hh-section">
         <div className="hh-section-heading">
           <h2>Comment sont composés nos packs ?</h2>
           <p>
-            Chez <b>Hormones & Harmonie,</b> nos packs reposent sur <b>3 piliers de la naturopathie : la phytothérapie, la gemmothérapie et la nutrithérapie.</b>
+            Chez <b>Hormone & Harmonie,</b> nos packs reposent sur <b>3 piliers de la naturopathie : la phytothérapie, la gemmothérapie et la nutrithérapie.</b>
           </p>
           <p>Parce que deux personnes ayant la même problématique n'ont pas forcément les mêmes besoins, nous sélectionnons et associons ces différentes approches en tenant compte <b>du profil, des besoins, des symptômes dominants et du projet de grossesse lorsqu'il existe.</b></p>
         </div>
