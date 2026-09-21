@@ -79,6 +79,7 @@ export function Header({}: HeaderProps) {
     { label: "Événements", to: "/events" },
     { label: "FAQ", to: "/faqs" },
     { label: "Contact", to: "/contact" },
+    { label: "Nos collaborateurs", to: "/collaborators" },
   ];
 
   const isActive = (to: string) => {

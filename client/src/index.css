@@ -254,3 +254,54 @@ body {
     grid-template-columns: 1fr;
   }
 }
+
+/* Editorial testimonials and collaborator directory. */
+.hh-testimonials { padding: 64px max(20px, 5vw); background: #faf6ef; }
+.hh-testimonials h2 { font: clamp(32px,4vw,48px) Georgia,serif; color:#a6778a; text-align:center; margin:0 0 36px; }
+.hh-testimonial-track { display:flex; gap:22px; overflow-x:auto; scroll-snap-type:x mandatory; padding:12px 0 22px; }
+.hh-testimonial-card { position:relative; flex:0 0 clamp(270px,30vw,420px); height:560px; border-radius:22px; overflow:hidden; background:#302321; scroll-snap-align:center; }
+.hh-testimonial-photo { position:absolute; inset:0; width:100%; border:0; padding:0; cursor:pointer; background:none; color:white; }
+.hh-testimonial-photo img { height:100%; width:100%; object-fit:cover; transition:transform .4s; }
+.hh-testimonial-photo:hover img { transform:scale(1.035); }
+.hh-testimonial-photo::after { content:""; position:absolute; inset:35% 0 0; background:linear-gradient(transparent,rgba(0,0,0,.25) 30%,#000 100%); pointer-events:none; }
+.hh-testimonial-photo>span { position:absolute; left:22px; bottom:124px; z-index:1; font-size:12px; letter-spacing:.06em; }
+.hh-testimonial-product { position:absolute; bottom:0; left:0; right:0; display:flex; align-items:center; gap:14px; padding:24px 20px; color:white; text-decoration:none; min-height:110px; }
+.hh-testimonial-product:hover { background:rgba(255,255,255,.09); }
+.hh-testimonial-product img { width:62px; height:72px; object-fit:contain; background:white; border-radius:5px; flex-shrink:0; }
+.hh-testimonial-product strong { font-size:15px; line-height:1.4; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+.hh-testimonial-product small { display:block; font-size:14px; margin-top:8px; }
+.hh-testimonial-dialog { position:fixed; inset:0; margin:auto; padding:0; border:0; border-radius:20px; width:min(760px,92vw); max-height:88vh; overflow:auto; background:#fffaf5; color:#382a27; }
+.hh-testimonial-dialog::backdrop { background:rgba(25,17,17,.7); backdrop-filter:blur(4px); }
+.hh-dialog-close { position:absolute; right:14px; top:14px; border:0; background:white; border-radius:50%; width:40px; height:40px; font-size:28px; cursor:pointer; }
+.hh-dialog-portrait { width:100%; max-height:350px; object-fit:cover; }
+.hh-dialog-copy { padding:30px; }
+.hh-dialog-copy h3 { font:28px Georgia,serif; color:#a6778a; }
+.hh-dialog-copy p { white-space:pre-wrap; overflow-wrap:anywhere; line-height:1.85; margin:22px 0; }
+.hh-dialog-copy a { color:#805a24; text-decoration:underline; }
+.hh-collaborators { padding:70px max(22px,8vw); background:linear-gradient(145deg,#faf5ef,#f2eaed); min-height:60vh; }
+.hh-collaborators header { text-align:center; max-width:700px; margin:0 auto 45px; }
+.hh-collaborators header>span { font-size:11px; letter-spacing:.22em; color:#9a7d55; }
+.hh-collaborators h1 { font:clamp(36px,5vw,60px) Georgia,serif; color:#a6778a; margin:18px 0; }
+.hh-collaborator-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,290px),1fr)); gap:24px; max-width:1200px; margin:auto; }
+.hh-collaborator-grid article { padding:30px; background:rgba(255,255,255,.85); border:1px solid #e9dddf; border-radius:22px; box-shadow:0 14px 35px #79555c0a; overflow-wrap:anywhere; }
+.hh-collaborator-top { display:flex; justify-content:space-between; align-items:center; gap:15px; color:#a6778a; }
+.hh-collaborator-top>span { padding:6px 12px; background:#f4eded; border-radius:30px; font-size:12px; }
+.hh-collaborator-grid h2 { font:26px Georgia,serif; margin:26px 0 22px; color:#493333; }
+.hh-collaborator-grid p { display:flex; align-items:flex-start; gap:12px; margin:14px 0; color:#736364; }
+.hh-collaborator-grid p svg { flex-shrink:0; margin-top:3px; }
+.hh-collaborator-grid a:hover { text-decoration:underline; }
+/* Botanical cards: rose, sage and warm gold, with fine foliage ornaments. */
+.hh-pillar-grid article.hh-botanical-card { position:relative; overflow:hidden; border:0; border-radius:14px; padding:28px 46px 36px; background:#f5ecef; color:#a2788a; isolation:isolate; }
+.hh-pillar-grid article.hh-botanical-1 { background:#f4f2e9; color:#919b6b; }
+.hh-pillar-grid article.hh-botanical-2 { background:#f9f2e7; color:#b49754; }
+.hh-pillar-grid .hh-pillar-icon { display:inline-flex; border:1px solid currentColor; border-radius:50%; padding:13px; margin-bottom:15px; }
+.hh-pillar-grid .hh-pillar-icon svg { color:inherit; margin:0; stroke-width:1; }
+.hh-pillar-grid .hh-botanical-card h3 { color:inherit; text-transform:uppercase; font-size:16px; position:relative; }
+.hh-pillar-grid .hh-botanical-card p { position:relative; font-size:14px; line-height:1.8; color:#493e39; margin:0; }
+.hh-pillar-ornament { display:flex; align-items:center; justify-content:center; gap:8px; color:#b69a5e; margin:10px 0 14px; }
+.hh-pillar-ornament::before,.hh-pillar-ornament::after { content:""; height:1px; width:30px; background:currentColor; opacity:.5; }
+.hh-pillar-grid svg.hh-botanical-branch { position:absolute; left:-22px; bottom:-20px; width:108px; height:245px; fill:none; stroke:#aa926d; stroke-width:1; opacity:.5; z-index:-1; margin:0; }
+.hh-pillar-grid .hh-botanical-2 svg.hh-botanical-branch { left:auto; right:-20px; transform:scaleX(-1); }
+.hh-botanical-accent { position:absolute; bottom:-26px; right:12px; font:100px Georgia,serif; color:#bba166; opacity:.25; z-index:-1; }
+.hh-botanical-0 .hh-botanical-accent { color:#d2a334; left:6px; right:auto; }
+@media(max-width:640px) { .hh-testimonial-card { height:460px; flex-basis:85%; } .hh-testimonials { padding:44px 18px; } .hh-dialog-copy { padding:22px; } }

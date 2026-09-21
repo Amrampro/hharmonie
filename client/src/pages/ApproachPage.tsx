@@ -1,6 +1,5 @@
 import { Heart, Leaf, Pill, Sprout } from "lucide-react";
 import { theme } from "../config/theme";
-import approachImage from "../assets/img/hh-approach.jpeg";
 
 const pillars = [
   {
@@ -45,11 +44,14 @@ export function ApproachPage() {
           <p>Parce que deux personnes ayant la même problématique n'ont pas forcément les mêmes besoins, nous sélectionnons et associons ces différentes approches en tenant compte <b>du profil, des besoins, des symptômes dominants et du projet de grossesse lorsqu'il existe.</b></p>
         </div>
         <div className="hh-pillar-grid">
-          {pillars.map((pillar) => (
-            <article key={pillar.title}>
-              <pillar.icon size={42} />
+          {pillars.map((pillar, index) => (
+            <article key={pillar.title} className={`hh-botanical-card hh-botanical-${index}`}>
+              <svg className="hh-botanical-branch" viewBox="0 0 120 260" aria-hidden="true"><path d="M15 270 Q85 150 65 8" /><path d="M52 190 Q5 173 14 144 Q40 142 52 190 M62 156 Q110 133 102 106 Q75 116 62 156 M66 114 Q27 90 35 65 Q59 78 66 114 M67 72 Q91 49 79 20 Q62 36 67 72 M38 226 Q87 211 97 178 Q64 177 38 226" /></svg>
+              <span className="hh-pillar-icon"><pillar.icon size={32} /></span>
               <h3>{pillar.title}</h3>
+              <div className="hh-pillar-ornament" aria-hidden="true">✿</div>
               <p>{pillar.text}</p>
+              <span className="hh-botanical-accent" aria-hidden="true">{index === 0 ? "✺" : index === 1 ? "❧" : "◒"}</span>
             </article>
           ))}
         </div>

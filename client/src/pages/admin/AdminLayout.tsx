@@ -100,6 +100,9 @@ export default function AdminLayout() {
     {
       title: "Configuration",
       items: [
+        { to: "/admin/testimonials", label: "Témoignages", icon: MessageSquare },
+        { to: "/admin/collaborators", label: "Collaborateurs", icon: User },
+        { to: "/admin/messages", label: "Messages de contact", icon: Mail },
         { to: "/admin/banners", label: "Bannières", icon: ImageIcon },
         { to: "/admin/legal-links", label: "Pages légales", icon: LinkIcon },
         { to: "/admin/parameters", label: "Paramètres", icon: Settings },

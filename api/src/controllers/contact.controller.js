@@ -1,61 +1,13 @@
-// api/src/controllers/contact.controller.js
-import { mailer } from "../config/mailer.js";
-
-const ADMIN_EMAIL = "noveden.beauty7@gmail.com";
-
-function isEmail(v) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(v || "").trim());
-}
-
-function clean(v) {
-  return String(v ?? "").trim();
-}
+import { randomUUID } from "node:crypto";
+import { query } from "../config/database.js";
+import { sendApiError } from "../utils/apiError.js";
 
 export async function sendContactMessage(req, res) {
   try {
-    const name = clean(req.body?.name);
-    const email = clean(req.body?.email);
-    const subject = clean(req.body?.subject);
-    const message = clean(req.body?.message);
-
-    if (!name || !email || !subject || !message) {
-      return res.status(400).json({ error: "Tous les champs sont requis." });
-    }
-    if (!isEmail(email)) {
-      return res.status(400).json({ error: "Email invalide." });
-    }
-
-    const html = `
-      <div style="font-family:Arial,sans-serif;line-height:1.5;color:#111;">
-        <h2>Nouveau message depuis le formulaire de contact</h2>
-        <p><b>Nom:</b> ${escapeHtml(name)}</p>
-        <p><b>Email:</b> ${escapeHtml(email)}</p>
-        <p><b>Sujet:</b> ${escapeHtml(subject)}</p>
-        <hr />
-        <p style="white-space:pre-wrap">${escapeHtml(message)}</p>
-      </div>
-    `;
-
-    await mailer.sendMail({
-      from: process.env.MAIL_FROM || "no-reply@example.com",
-      to: ADMIN_EMAIL,
-      replyTo: email, // ✅ répondre directement au client
-      subject: `[Contact] ${subject}`,
-      html,
-    });
-
-    return res.json({ success: true, message: "Message envoyé avec succès." });
-  } catch (e) {
-    console.error("sendContactMessage error:", e);
-    return res.status(500).json({ error: "Erreur lors de l'envoi du message." });
-  }
-}
-
-function escapeHtml(str) {
-  return String(str)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
+    const values = ["name", "email", "subject", "message"].map(key => typeof req.body?.[key] === "string" ? req.body[key].trim() : "");
+    if (values.some((value, i) => !value || value.length > [190, 254, 255, 10000][i])) return res.status(400).json({ error: "Veuillez compléter les champs et respecter leur longueur maximale." });
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values[1])) return res.status(400).json({ error: "Email invalide." });
+    await query("INSERT INTO contact_messages (id, name, email, subject, message) VALUES (?, ?, ?, ?, ?)", [randomUUID(), ...values]);
+    return res.status(201).json({ success: true, message: "Votre message a bien été transmis. Merci !" });
+  } catch (error) { return sendApiError(res, error); }
 }

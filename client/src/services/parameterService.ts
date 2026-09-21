@@ -22,6 +22,7 @@ export type Parameters = {
 
   facebook_link: string | null;
   instagram_link: string | null;
+  tiktok_link: string | null;
   twitter_link: string | null;
   whatsapp_link: string | null;
 
@@ -49,6 +50,7 @@ export type UpsertParametersPayload = Partial<
     | "enterprise_number"
     | "facebook_link"
     | "instagram_link"
+    | "tiktok_link"
     | "twitter_link"
     | "whatsapp_link"
     | "logo_navbar"

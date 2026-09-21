@@ -1,6 +1,6 @@
 // client/src/pages/ContactPage.tsx
 import { useState } from "react";
-import { Mail, Phone, MapPin, MessageSquareText } from "lucide-react";
+import { Mail, Phone, MapPin } from "lucide-react";
 import { theme } from "../config/theme";
 import { Button } from "../components/Button";
 import { PageBanner } from "../components/PageBanner";
@@ -115,6 +115,7 @@ export function ContactPage() {
                   <input
                     id="name"
                     name="name"
+                    maxLength={190}
                     type="text"
                     value={formData.name}
                     onChange={handleChange}
@@ -148,6 +149,7 @@ export function ContactPage() {
                   <input
                     id="email"
                     name="email"
+                    maxLength={254}
                     type="email"
                     value={formData.email}
                     onChange={handleChange}
@@ -181,6 +183,7 @@ export function ContactPage() {
                   <input
                     id="subject"
                     name="subject"
+                    maxLength={255}
                     type="text"
                     value={formData.subject}
                     onChange={handleChange}
@@ -214,6 +217,7 @@ export function ContactPage() {
                   <textarea
                     id="message"
                     name="message"
+                    maxLength={10000}
                     value={formData.message}
                     onChange={handleChange}
                     required

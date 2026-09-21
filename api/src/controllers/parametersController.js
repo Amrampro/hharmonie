@@ -34,6 +34,7 @@ export const upsertParameters = async (req, res) => {
       enterprise_number: req.body?.enterprise_number ?? null,
       facebook_link: req.body?.facebook_link ?? null,
       instagram_link: req.body?.instagram_link ?? null,
+      tiktok_link: req.body?.tiktok_link ?? null,
       twitter_link: req.body?.twitter_link ?? null,
       whatsapp_link: req.body?.whatsapp_link ?? null,
 
@@ -61,6 +62,7 @@ export const upsertParameters = async (req, res) => {
           enterprise_number = ?,
           facebook_link = ?,
           instagram_link = ?,
+          tiktok_link = ?,
           twitter_link = ?,
           whatsapp_link = ?,
           logo_navbar = ?,
@@ -81,6 +83,7 @@ export const upsertParameters = async (req, res) => {
           payload.enterprise_number,
           payload.facebook_link,
           payload.instagram_link,
+          payload.tiktok_link,
           payload.twitter_link,
           payload.whatsapp_link,
           payload.logo_navbar,
@@ -103,9 +106,9 @@ export const upsertParameters = async (req, res) => {
       `
       INSERT INTO parameters
         (id, promotional_text, home_text, story, mission, vision, expertise, name, email, address, phone, enterprise_number,
-         facebook_link, instagram_link, twitter_link, whatsapp_link,
+         facebook_link, instagram_link, tiktok_link, twitter_link, whatsapp_link,
          logo_navbar, logo_footer)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `,
       [
         id,
@@ -122,6 +125,7 @@ export const upsertParameters = async (req, res) => {
         payload.enterprise_number,
         payload.facebook_link,
         payload.instagram_link,
+          payload.tiktok_link,
         payload.twitter_link,
         payload.whatsapp_link,
         payload.logo_navbar,

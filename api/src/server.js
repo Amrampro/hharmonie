@@ -1,3 +1,4 @@
+import contentRoutes from "./routes/content.routes.js";
 // api/src/server.js
 
 import express from "express";
@@ -182,6 +183,7 @@ app.use("/api/pr", productReviewsRoutes);
 app.use("/api/orders", ordersRoutes);
 
 app.use("/api/contact", contactRoutes);
+app.use("/api/content", contentRoutes);
 
 app.use("/api/appointments", appointmentsRoutes);
 

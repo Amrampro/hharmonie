@@ -1,3 +1,4 @@
+import { Testimonials } from "../components/Testimonials";
 // client/src/pages/HomePage.tsx
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -479,6 +480,7 @@ export function HomePage() {
       </section>
 
       {/* MODAL PROMO (animée + responsive) */}
+      <Testimonials />
       {showModal && (
         <div
           style={{

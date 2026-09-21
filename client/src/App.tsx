@@ -1,3 +1,5 @@
+import AdminContentPage from "./pages/admin/AdminContentPage";
+import { CollaboratorsPage } from "./pages/CollaboratorsPage";
 // client/src/App.tsx
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
@@ -73,6 +75,7 @@ function App() {
               <Route path="/events/:slug" element={<EventDetailPage />} />
               <Route path="/consultation" element={<ConsultationPage />} />
               <Route path="/contact" element={<ContactPage />} />
+              <Route path="/collaborators" element={<CollaboratorsPage />} />
               <Route path="/products/:slug" element={<ProductDetailPage />} />
               <Route path="/cart" element={<CartPage />} />
               <Route path="/faqs" element={<FAQPage />} />
@@ -100,6 +103,9 @@ function App() {
               }
             >
               <Route index element={<AdminDashboardPage />} />
+              <Route path="testimonials" element={<AdminContentPage key="testimonials" kind="testimonials" />} />
+              <Route path="collaborators" element={<AdminContentPage key="collaborators" kind="collaborators" />} />
+              <Route path="messages" element={<AdminContentPage key="messages" kind="messages" />} />
               <Route
                 path="product-categories"
                 element={<ProductCategoriesPage />}

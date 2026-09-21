@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   Leaf,
+  Music2,
   Mail,
   Phone,
   MapPin,
@@ -109,6 +110,7 @@ export function Footer({ onNavigate }: FooterProps) {
 
   const facebook = String(parameters?.facebook_link || "").trim();
   const instagram = String(parameters?.instagram_link || "").trim();
+  const tiktok = String(parameters?.tiktok_link || "").trim();
   const twitter = String(parameters?.twitter_link || "").trim();
   const whatsapp = String(parameters?.whatsapp_link || "").trim(); // (si tu veux afficher plus tard)
 
@@ -148,8 +150,9 @@ export function Footer({ onNavigate }: FooterProps) {
         label: "WhatsApp",
       });
 
+    if (/^https?:\/\//i.test(tiktok)) arr.push({ key: "tiktok", href: tiktok, Icon: Music2, label: "TikTok" });
     return arr;
-  }, [facebook, instagram, twitter, whatsapp]);
+  }, [facebook, instagram, twitter, whatsapp, tiktok]);
 
   return (
     <footer>

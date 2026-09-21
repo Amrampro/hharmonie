@@ -1,3 +1,4 @@
+import { PasswordInput } from "../components/PasswordInput";
 // client/src/pages/AccountPage.tsx
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -274,7 +275,7 @@ export function AccountPage() {
             <div style={{ display: "grid", gap: theme.spacing.md, marginTop: theme.spacing.lg }}>
               <label style={labelStyle()}>
                 Mot de passe actuel
-                <input
+                <PasswordInput
                   style={inputStyle()}
                   type="password"
                   value={currentPassword}
@@ -286,7 +287,7 @@ export function AccountPage() {
 
               <label style={labelStyle()}>
                 Nouveau mot de passe
-                <input
+                <PasswordInput
                   style={inputStyle()}
                   type="password"
                   value={newPassword}
@@ -298,7 +299,7 @@ export function AccountPage() {
 
               <label style={labelStyle()}>
                 Confirmer le nouveau mot de passe
-                <input
+                <PasswordInput
                   style={inputStyle()}
                   type="password"
                   value={newPassword2}

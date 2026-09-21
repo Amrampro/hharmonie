@@ -2,6 +2,9 @@ CREATE DATABASE IF NOT EXISTS hormone CHARACTER SET utf8mb4 COLLATE utf8mb4_unic
 USE hormone;
 
 SET FOREIGN_KEY_CHECKS = 0;
+DROP TABLE IF EXISTS testimonials;
+DROP TABLE IF EXISTS collaborators;
+DROP TABLE IF EXISTS contact_messages;
 DROP TABLE IF EXISTS appointment_document_chunks;
 DROP TABLE IF EXISTS appointment_documents;
 DROP TABLE IF EXISTS appointments;
@@ -312,6 +315,7 @@ CREATE TABLE faqs (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE parameters (
+  tiktok_link VARCHAR(1000) DEFAULT NULL,
   id VARCHAR(36) NOT NULL PRIMARY KEY,
   promotional_text VARCHAR(500) DEFAULT NULL,
   home_text TEXT DEFAULT NULL,
@@ -468,4 +472,38 @@ CREATE TABLE appointment_document_chunks (
   content MEDIUMBLOB NOT NULL,
   PRIMARY KEY (document_id, chunk_index),
   CONSTRAINT fk_appointment_document_chunks_document FOREIGN KEY (document_id) REFERENCES appointment_documents(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE testimonials (
+  id VARCHAR(36) NOT NULL PRIMARY KEY,
+  author_name VARCHAR(190) NOT NULL,
+  photo_url VARCHAR(1000) NOT NULL,
+  testimony TEXT NOT NULL,
+  product_id VARCHAR(36) NOT NULL,
+  is_active TINYINT(1) NOT NULL DEFAULT 1,
+  display_order INT UNSIGNED NOT NULL DEFAULT 0,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_testimonials_product FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE collaborators (
+  id VARCHAR(36) NOT NULL PRIMARY KEY,
+  company_name VARCHAR(190) NOT NULL,
+  person_name VARCHAR(190) DEFAULT NULL,
+  address VARCHAR(500) DEFAULT NULL,
+  phone VARCHAR(50) DEFAULT NULL,
+  country VARCHAR(100) DEFAULT NULL,
+  is_active TINYINT(1) NOT NULL DEFAULT 1,
+  display_order INT UNSIGNED NOT NULL DEFAULT 0,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE contact_messages (
+  id VARCHAR(36) NOT NULL PRIMARY KEY,
+  name VARCHAR(190) NOT NULL,
+  email VARCHAR(254) NOT NULL,
+  subject VARCHAR(255) NOT NULL,
+  message TEXT NOT NULL,
+  is_read TINYINT(1) NOT NULL DEFAULT 0,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

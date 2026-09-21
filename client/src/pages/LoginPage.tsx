@@ -1,3 +1,4 @@
+import { PasswordInput } from "../components/PasswordInput";
 import { useState } from "react";
 import { Mail, Lock, LogIn } from "lucide-react";
 import { useNavigate, Link } from "react-router-dom";
@@ -148,7 +149,7 @@ export function LoginPage() {
                     color: theme.colors.text.light,
                   }}
                 />
-                <input
+                <PasswordInput
                   id="password"
                   type="password"
                   value={password}

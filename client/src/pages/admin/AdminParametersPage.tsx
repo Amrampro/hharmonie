@@ -19,6 +19,7 @@ type FormState = {
 
   facebook_link: string;
   instagram_link: string;
+  tiktok_link: string;
   twitter_link: string;
   whatsapp_link: string;
 
@@ -44,6 +45,7 @@ const emptyForm = (): FormState => ({
 
   facebook_link: "",
   instagram_link: "",
+  tiktok_link: "",
   twitter_link: "",
   whatsapp_link: "",
 
@@ -111,6 +113,7 @@ export default function AdminParametersPage() {
 
         facebook_link: toText((parameters as any).facebook_link),
         instagram_link: toText((parameters as any).instagram_link),
+        tiktok_link: toText((parameters as any).tiktok_link),
         twitter_link: toText((parameters as any).twitter_link),
         whatsapp_link: toText((parameters as any).whatsapp_link),
 
@@ -135,6 +138,7 @@ export default function AdminParametersPage() {
     const urlFields: Array<{ value: string; label: string }> = [
       { value: form.facebook_link, label: "Facebook link" },
       { value: form.instagram_link, label: "Instagram link" },
+      { value: form.tiktok_link, label: "TikTok link" },
       { value: form.twitter_link, label: "Twitter link" },
       { value: form.whatsapp_link, label: "WhatsApp link" },
       { value: form.logo_navbar, label: "Logo navbar URL" },
@@ -178,6 +182,7 @@ export default function AdminParametersPage() {
 
         facebook_link: toNull(form.facebook_link),
         instagram_link: toNull(form.instagram_link),
+        tiktok_link: toNull(form.tiktok_link),
         twitter_link: toNull(form.twitter_link),
         whatsapp_link: toNull(form.whatsapp_link),
 
@@ -536,6 +541,16 @@ export default function AdminParametersPage() {
                 className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-black/20"
                 disabled={!canSubmit}
                 placeholder="https://instagram.com/..."
+              />
+            </Field>
+
+            <Field label="Lien TikTok">
+              <input
+                value={form.tiktok_link}
+                onChange={(e) => setForm((f) => ({ ...f, tiktok_link: e.target.value }))}
+                className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-black/20"
+                disabled={!canSubmit}
+                placeholder="https://www.tiktok.com/@..."
               />
             </Field>
 

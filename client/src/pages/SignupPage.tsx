@@ -1,3 +1,4 @@
+import { PasswordInput } from "../components/PasswordInput";
 import { useState } from "react";
 import { Mail, Lock, User, Phone, UserPlus } from "lucide-react";
 import { useNavigate, Link } from "react-router-dom";
@@ -296,7 +297,7 @@ export function SignupPage() {
                     color: theme.colors.text.light,
                   }}
                 />
-                <input
+                <PasswordInput
                   id="password"
                   type="password"
                   value={formData.password}
@@ -337,7 +338,7 @@ export function SignupPage() {
                     color: theme.colors.text.light,
                   }}
                 />
-                <input
+                <PasswordInput
                   id="confirmPassword"
                   type="password"
                   value={formData.confirmPassword}
