@@ -44,7 +44,7 @@ test("HTTP submission accepts multipart answers and documents; downloads require
   const writes = [];
   const connection = { beginTransaction: async () => {}, commit: async () => {}, rollback: async () => {}, release() {},
     execute: async (sql, values) => {
-      if (sql.startsWith("SELECT * FROM appointment_slots")) return [[{ id: "slot-test" }]];
+      if (sql.startsWith("SELECT * FROM appointment_slots")) return [[{ id: "slot-test", price: 0 }]];
       writes.push({ sql, values });
       return [{ insertId: 123, affectedRows: 1 }];
     },

@@ -14,6 +14,7 @@ export type AppointmentService = {
 };
 
 export type AppointmentSlot = {
+  price: number;
   id: string;
   service_id: string;
   service_name: string;
@@ -24,6 +25,8 @@ export type AppointmentSlot = {
 };
 
 export type Appointment = {
+  amount_cents: number | null;
+  payment_status: "free" | "pending" | "paid" | "expired" | null;
   id: string;
   appointment_number: string;
   service_name: string;
@@ -85,7 +88,7 @@ export const appointmentService = {
     return http<{ slots: AppointmentSlot[] }>(`${apiEndpoints.appointments.slots}${qs(params)}`, { auth: false });
   },
 
-  async book(payload: ConsultationPayload, documents: File[] = []): Promise<{ appointment_number: string }> {
+  async book(payload: ConsultationPayload, documents: File[] = []): Promise<{ appointment_number: string; checkout_url: string | null; payment_status: string }> {
     const body = new FormData();
     body.append("data", JSON.stringify(payload));
     documents.forEach((file) => body.append("documents", file));
@@ -96,6 +99,10 @@ export const appointmentService = {
     const data = response.headers.get("content-type")?.includes("application/json") ? await response.json() : null;
     if (!response.ok) throw new Error(data?.error || (response.status === 413 ? "Les documents dépassent la taille autorisée par le serveur." : "Impossible d’enregistrer le rendez-vous."));
     return data;
+  },
+
+  paymentStatus(sessionId: string) {
+    return http<{ appointment_number: string; status: string; payment_status: string; checkout_url: string | null }>(`${apiEndpoints.appointments.book.replace(/\/book$/, "")}/payment/${encodeURIComponent(sessionId)}`, { auth: false });
   },
 
   async adminDownloadDocument(document: AppointmentDocument) {
@@ -134,6 +141,7 @@ export const appointmentService = {
     start_time: string;
     end_time: string;
     status?: string;
+    price: number;
   }) {
     return http<{ slot: AppointmentSlot }>(apiEndpoints.appointments.admin.slots, {
       method: "POST",

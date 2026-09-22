@@ -69,3 +69,14 @@ Si le lien TikTok échoue encore, relever dans les logs Node la ligne `Create le
 
 Pour les tests unitaires : `npm test` depuis le dossier API.
 Pour inclure les tests SQL, définir `RUN_DB_TESTS=1` et les variables `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` d'une base de test. Ces tests utilisent des tables temporaires et un mode strict limité à leur connexion. Ils nécessitent le droit `CREATE TEMPORARY TABLES`. Le test de migration du questionnaire crée en plus un schéma isolé nommé `hh_consultation_test_<identifiant aléatoire>`, qu'il supprime à la fin ; il nécessite les droits CREATE/DROP DATABASE sur le serveur de test.
+
+
+## Prix et paiement des consultations (22 septembre 2026)
+
+Exécuter une seule fois `migrations/20260922_add_appointment_payments.sql` sur la base existante, avant de publier l’API et le client. Cette migration ajoute le prix par créneau et le suivi du paiement, élargit les statuts et reprend le prix de l’accompagnement pour les créneaux existants. Les anciennes réservations restent inchangées (paiement historique non renseigné). Ne pas utiliser `db:migrate` à la place de ce fichier : il ne met pas à jour les ENUM existants.
+
+Le prix d’un nouveau créneau est explicite : 0 € confirme immédiatement sans Stripe ; un tarif positif passe par Stripe Checkout en EUR (minimum 0,50 €). Un créneau réservé ne peut plus être modifié ou supprimé. L’administration affiche le montant mémorisé à la réservation et son état de paiement.
+
+Réutiliser `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` et `CORS_ORIGIN` (adresse publique du site). Sur le webhook Stripe existant `/api/stripe/webhook`, activer `checkout.session.completed` et `checkout.session.expired`. La réservation n’est confirmée qu’après paiement validé côté serveur. La session expire après environ 31 minutes ; un événement d’expiration libère le créneau. La consultation des disponibilités vérifie aussi auprès de Stripe les paiements en attente expirés, en cas de webhook retardé. Un abandon du paiement ne confirme jamais la réservation ; le client peut reprendre le paiement depuis le lien proposé au retour.
+
+Validation locale : base SQL isolée avec migration réelle et Stripe simulé, sans débit bancaire. Avant ouverture en production, vérifier un parcours avec les clés et événements Stripe de test de l’hébergement.

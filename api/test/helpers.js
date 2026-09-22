@@ -2,8 +2,8 @@ import vm from "node:vm";
 import { readFile } from "node:fs/promises";
 
 // Load the real controller with isolated database/mail dependencies.
-export async function loadController(name, database, overrides = {}) {
-  const context = vm.createContext({ console: { error() {}, log() {} }, process: { env: {} } });
+export async function loadController(name, database, overrides = {}, environment = {}) {
+  const context = vm.createContext({ console: { error() {}, log() {} }, process: { env: environment } });
   const cache = new Map();
   async function load(url) {
     if (cache.has(url)) return cache.get(url);

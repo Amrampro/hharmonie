@@ -11,8 +11,9 @@ export default function AdminAppointmentsPage() {
   const [services, setServices] = useState<AppointmentService[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [slots, setSlots] = useState<AppointmentSlot[]>([]);
+  const [slotPrices, setSlotPrices] = useState<Record<string, string>>({});
   const [serviceForm, setServiceForm] = useState({ name: "", short_description: "", duration_minutes: 60, price: 65, meeting_type: "online" });
-  const [slotForm, setSlotForm] = useState({ service_id: "", available_date: "", start_time: "09:00", end_time: "10:00", status: "available" });
+  const [slotForm, setSlotForm] = useState({ service_id: "", available_date: "", start_time: "09:00", end_time: "10:00", status: "available", price: 0 });
 
   const load = async () => {
     const [serviceResp, appointmentResp, slotResp] = await Promise.all([
@@ -24,6 +25,7 @@ export default function AdminAppointmentsPage() {
     setServices(loadedServices);
     setAppointments(appointmentResp.appointments || []);
     setSlots(slotResp.slots || []);
+    setSlotPrices(Object.fromEntries((slotResp.slots || []).map(slot => [slot.id, String(slot.price)])));
     setSlotForm((current) => ({ ...current, service_id: current.service_id || loadedServices[0]?.id || "" }));
   };
 
@@ -98,6 +100,7 @@ export default function AdminAppointmentsPage() {
               <input required type="time" value={slotForm.start_time} onChange={(e) => setSlotForm({ ...slotForm, start_time: e.target.value })} />
               <input required type="time" value={slotForm.end_time} onChange={(e) => setSlotForm({ ...slotForm, end_time: e.target.value })} />
             </div>
+            <label>Prix du créneau (€) — 0 pour une consultation gratuite<input required type="number" min="0" max="999999.99" step="0.01" value={slotForm.price} onChange={e => setSlotForm({ ...slotForm, price: Number(e.target.value) })} /></label>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#A47788] px-4 py-3 font-semibold text-white">
               <CalendarDays size={18} /> Créer le créneau
             </button>
@@ -113,7 +116,8 @@ export default function AdminAppointmentsPage() {
               <strong>{slot.service_name}</strong>
               <span>{new Date(slot.available_date).toLocaleDateString("fr-FR")}</span>
               <span>{slot.start_time.slice(0, 5)} - {slot.end_time.slice(0, 5)} | {slot.status}</span>
-              <button disabled={busy} type="button" onClick={() => deleteSlot(slot.id)} className="inline-flex items-center justify-center rounded-lg border p-2 text-red-600">
+              <div className="flex items-center gap-2 flex-wrap"><label>Prix (€)<input aria-label={`Prix du créneau ${slot.start_time}`} className="w-28" type="number" min="0" step="0.01" disabled={busy || slot.status === "booked"} value={slotPrices[slot.id] ?? ""} onChange={e => setSlotPrices(current => ({ ...current, [slot.id]: e.target.value }))} /></label><button disabled={busy || slot.status === "booked" || !slotPrices[slot.id]} type="button" onClick={() => run(async () => { await appointmentService.adminUpdateSlot(slot.id, { price: Number(slotPrices[slot.id]) }); await load(); })}>Enregistrer le prix</button></div>
+              <button disabled={busy || slot.status === "booked"} type="button" onClick={() => deleteSlot(slot.id)} className="inline-flex items-center justify-center rounded-lg border p-2 text-red-600">
                 <Trash2 size={17} />
               </button>
             </div>
@@ -133,6 +137,8 @@ export default function AdminAppointmentsPage() {
               </summary>
               <dl className="mt-5 grid gap-4 sm:grid-cols-2">
                 {[
+                  ["Montant", appointment.amount_cents == null ? "Ancienne réservation" : (appointment.amount_cents / 100).toLocaleString("fr-FR", { style: "currency", currency: "EUR" })],
+                  ["Paiement", ({ free: "Gratuit", pending: "En attente de paiement", paid: "Payé", expired: "Paiement expiré" } as Record<string, string>)[appointment.payment_status || ""] || "Ancienne réservation"],
                   ["E-mail", appointment.email], ["Téléphone", appointment.phone],
                   ["1. Vous êtes", appointment.gender === "female" ? "Femme" : appointment.gender === "male" ? "Homme" : null],
                   ["2. Âge", appointment.age == null ? null : `${appointment.age} ans`],

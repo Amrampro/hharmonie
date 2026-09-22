@@ -1,3 +1,4 @@
+import { priceInCents, createAppointmentCheckout, expireAppointmentCheckout, refreshExpiredAppointmentPayments, getAppointmentPayment } from "../services/appointmentPayments.js";
 import { sendApiError } from "../utils/apiError.js";
 import { getConnection, query } from "../config/database.js";
 import { randomUUID } from "node:crypto";
@@ -32,6 +33,7 @@ export async function listServices(req, res) {
 
 export async function listSlots(req, res) {
   try {
+    await refreshExpiredAppointmentPayments();
     const { serviceId } = req.query;
     const params = [];
     let sql = `
@@ -56,10 +58,12 @@ export async function listSlots(req, res) {
 export async function bookAppointment(req, res) {
   let connection;
   let committed = false;
+  let checkout;
   try {
     const data = validateConsultation(req.body ?? {}, req.files ?? []);
     const { service_id, slot_id, first_name, last_name, email, phone } = data;
 
+    await refreshExpiredAppointmentPayments(slot_id);
     connection = await getConnection();
     await connection.beginTransaction();
     const [slots] = await connection.execute(
@@ -70,18 +74,20 @@ export async function bookAppointment(req, res) {
       return res.status(409).json({ error: "Slot unavailable" });
     }
 
+    const cents = priceInCents(slots[0].price);
     const number = appointmentNumber();
     await connection.execute("UPDATE appointment_slots SET status = 'booked' WHERE id = ?", [slot_id]);
     const [created] = await connection.execute(
       `INSERT INTO appointments
        (appointment_number, service_id, slot_id, first_name, last_name, email, phone,
         gender, age, baby_project, main_concern, consulted_professional, exams_description,
-        has_diagnosis, diagnosis_details, consultation_reasons, consultation_reason_other, status)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'confirmed')`,
+        has_diagnosis, diagnosis_details, consultation_reasons, consultation_reason_other, status, amount_cents, payment_status)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [number, service_id, slot_id, first_name, last_name, email, phone,
         data.gender, data.age, data.baby_project, data.main_concern, data.consulted_professional,
         data.exams_description, data.has_diagnosis, data.diagnosis_details,
-        JSON.stringify(data.consultation_reasons), data.consultation_reason_other]
+        JSON.stringify(data.consultation_reasons), data.consultation_reason_other,
+        cents === 0 ? "confirmed" : "pending_payment", cents, cents === 0 ? "free" : "pending"]
     );
     for (const file of req.files ?? []) {
       const name = file.originalname.replace(/[\\/\x00-\x1f\x7f]/g, "_").slice(0, 180) || "document";
@@ -96,15 +102,30 @@ export async function bookAppointment(req, res) {
         await connection.execute("INSERT INTO appointment_document_chunks (document_id, chunk_index, content) VALUES (?, ?, ?)", [documentId, offset / chunkSize, file.buffer.subarray(offset, offset + chunkSize)]);
       }
     }
+    if (cents > 0) {
+      checkout = await createAppointmentCheckout(number, email, cents);
+      if (!checkout.url) throw new Error("Checkout URL missing");
+      await connection.execute("UPDATE appointments SET stripe_session_id = ?, payment_expires_at = ? WHERE id = ?", [checkout.id, checkout.expires_at, created.insertId]);
+    }
     await connection.commit();
     committed = true;
-    res.status(201).json({ appointment_number: number });
+    res.status(201).json({ appointment_number: number, checkout_url: checkout?.url ?? null, payment_status: cents === 0 ? "free" : "pending" });
   } catch (error) {
     console.error("Book appointment error:", { code: error.code, message: error.statusCode === 400 ? error.message : "Reservation failed" });
     sendApiError(res, error);
   } finally {
     await releaseTransaction(connection, committed);
+    if (checkout && !committed) {
+      try { await expireAppointmentCheckout(checkout.id); } catch { console.error("Unable to expire uncommitted appointment checkout"); }
+    }
   }
+}
+
+export async function appointmentPaymentStatus(req, res) {
+  try {
+    res.setHeader("Cache-Control", "no-store");
+    res.json(await getAppointmentPayment(req.params.sessionId));
+  } catch (error) { sendApiError(res, error); }
 }
 
 export async function adminListAppointments(req, res) {
@@ -184,14 +205,16 @@ export async function adminCreateService(req, res) {
 
 export async function adminCreateSlot(req, res) {
   try {
-    const { service_id, available_date, start_time, end_time, status = "available" } = req.body ?? {};
+    const { service_id, available_date, start_time, end_time, status = "available", price = 0 } = req.body ?? {};
     if (!service_id || !available_date || !start_time || !end_time) {
       return res.status(400).json({ error: "Missing required fields" });
     }
+    if (!["available", "blocked"].includes(status)) return res.status(400).json({ error: "Statut invalide." });
+    const cents = priceInCents(price);
     await query(
-      `INSERT INTO appointment_slots (id, service_id, available_date, start_time, end_time, status)
-       VALUES (UUID(), ?, ?, ?, ?, ?)`,
-      [service_id, available_date, start_time, end_time, status]
+      `INSERT INTO appointment_slots (id, service_id, available_date, start_time, end_time, status, price)
+       VALUES (UUID(), ?, ?, ?, ?, ?, ?)` ,
+      [service_id, available_date, start_time, end_time, status, cents / 100]
     );
     const rows = await query(
       `SELECT s.*, sv.name AS service_name
@@ -211,17 +234,21 @@ export async function adminCreateSlot(req, res) {
 export async function adminUpdateSlot(req, res) {
   try {
     const { id } = req.params;
-    const { service_id, available_date, start_time, end_time, status } = req.body ?? {};
-    await query(
+    const { service_id, available_date, start_time, end_time, status, price } = req.body ?? {};
+    if (status !== undefined && !["available", "blocked"].includes(status)) return res.status(400).json({ error: "Statut invalide." });
+    const amount = price === undefined ? null : priceInCents(price) / 100;
+    const updated = await query(
       `UPDATE appointment_slots
        SET service_id = COALESCE(?, service_id),
            available_date = COALESCE(?, available_date),
            start_time = COALESCE(?, start_time),
            end_time = COALESCE(?, end_time),
-           status = COALESCE(?, status)
-       WHERE id = ?`,
-      [service_id ?? null, available_date ?? null, start_time ?? null, end_time ?? null, status ?? null, id]
+           status = COALESCE(?, status),
+           price = COALESCE(?, price)
+       WHERE id = ? AND status <> 'booked'`,
+      [service_id ?? null, available_date ?? null, start_time ?? null, end_time ?? null, status ?? null, amount, id]
     );
+    if (!updated.affectedRows) return res.status(409).json({ error: "Créneau réservé ou introuvable : modification impossible." });
     const rows = await query(
       `SELECT s.*, sv.name AS service_name
        FROM appointment_slots s
@@ -238,7 +265,8 @@ export async function adminUpdateSlot(req, res) {
 
 export async function adminDeleteSlot(req, res) {
   try {
-    await query("DELETE FROM appointment_slots WHERE id = ?", [req.params.id]);
+    const deleted = await query("DELETE s FROM appointment_slots s WHERE s.id = ? AND s.status <> 'booked' AND NOT EXISTS (SELECT 1 FROM appointments a WHERE a.slot_id = s.id)", [req.params.id]);
+    if (!deleted.affectedRows) return res.status(409).json({ error: "Ce créneau est lié à une réservation et ne peut pas être supprimé." });
     res.json({ success: true });
   } catch (error) {
     console.error("Admin delete slot error:", error);

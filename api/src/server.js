@@ -72,16 +72,77 @@ const uploadsPath = path.join(
 
 
 // ======================================================
-// CORS
+// CORS OLD
 // ======================================================
+
+// app.use(
+//   cors({
+//     origin: process.env.CORS_ORIGIN || "http://localhost:5173",
+//     credentials: true,
+//   })
+// );
+/*
+const allowedOrigins = [
+  "https://hharmonie.com",
+  "https://www.hharmonie.com",
+  "http://localhost:5173",
+  "http://127.0.0.1:5173",
+];
 
 app.use(
   cors({
-    origin: process.env.CORS_ORIGIN || "http://localhost:5173",
+    origin(origin, callback) {
+      if (!origin) {
+        return callback(null, true);
+      }
+
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      console.error("CORS blocked origin:", origin);
+
+      return callback(
+        new Error(`Origin not allowed by CORS: ${origin}`)
+      );
+    },
+
     credentials: true,
   })
 );
+*/
+// ======================================================
+// CORS
+// ======================================================
 
+const allowedOrigins = (process.env.CORS_ORIGIN || "")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+app.use(
+  cors({
+    origin(origin, callback) {
+      // Autorise les requêtes sans origin
+      if (!origin) {
+        return callback(null, true);
+      }
+
+      // Autorise les domaines définis dans .env
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      console.error("CORS blocked origin:", origin);
+
+      return callback(
+        new Error(`Origin not allowed by CORS: ${origin}`)
+      );
+    },
+
+    credentials: true,
+  })
+);
 
 // ======================================================
 // STRIPE

@@ -7,6 +7,7 @@ import {
   adminListServices,
   adminUpdateSlot,
   bookAppointment,
+  appointmentPaymentStatus,
   listServices,
   listSlots,
   adminDownloadDocument,
@@ -19,6 +20,7 @@ const router = Router();
 router.get("/services", listServices);
 router.get("/slots", listSlots);
 router.post("/book", consultationUpload, bookAppointment);
+router.get("/payment/:sessionId", appointmentPaymentStatus);
 
 router.use("/admin", authenticateToken, requireAdmin, (_req, res, next) => {
   res.setHeader("Cache-Control", "no-store");

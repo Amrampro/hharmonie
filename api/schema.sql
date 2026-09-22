@@ -417,6 +417,7 @@ CREATE TABLE appointment_services (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE appointment_slots (
+  price DECIMAL(10,2) NOT NULL DEFAULT 0.00,
   id VARCHAR(36) NOT NULL PRIMARY KEY,
   service_id VARCHAR(36) NOT NULL,
   available_date DATE NOT NULL,
@@ -429,6 +430,11 @@ CREATE TABLE appointment_slots (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE appointments (
+  amount_cents INT UNSIGNED DEFAULT NULL,
+  payment_status ENUM('free','pending','paid','expired') DEFAULT NULL,
+  stripe_session_id VARCHAR(255) DEFAULT NULL UNIQUE,
+  payment_expires_at INT UNSIGNED DEFAULT NULL,
+
   id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
   appointment_number VARCHAR(80) NOT NULL UNIQUE,
   service_id VARCHAR(36) NOT NULL,
@@ -448,7 +454,7 @@ CREATE TABLE appointments (
   diagnosis_details TEXT DEFAULT NULL,
   consultation_reasons JSON DEFAULT NULL,
   consultation_reason_other TEXT DEFAULT NULL,
-  status ENUM('confirmed','cancelled_by_client','cancelled_by_admin','completed','no_show') NOT NULL DEFAULT 'confirmed',
+  status ENUM('confirmed','cancelled_by_client','cancelled_by_admin','completed','no_show','pending_payment','payment_expired') NOT NULL DEFAULT 'confirmed',
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   CONSTRAINT fk_appointments_service FOREIGN KEY (service_id) REFERENCES appointment_services(id) ON DELETE CASCADE,

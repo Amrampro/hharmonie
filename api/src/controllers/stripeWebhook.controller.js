@@ -1,3 +1,4 @@
+import { reconcileAppointmentPayment } from "../services/appointmentPayments.js";
 // api/src/controllers/stripeWebhook.controller.js
 import Stripe from "stripe";
 import { query } from "../config/database.js";
@@ -34,6 +35,12 @@ export async function stripeWebhook(req, res) {
   }
 
   try {
+    if (event.data.object?.metadata?.kind === "appointment") {
+      if (["checkout.session.completed", "checkout.session.async_payment_succeeded", "checkout.session.expired"].includes(event.type)) {
+        await reconcileAppointmentPayment(event.data.object);
+      }
+      return res.json({ received: true });
+    }
     switch (event.type) {
       /**
        * ✅ Le plus important : session payée
