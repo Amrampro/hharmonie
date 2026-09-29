@@ -1,0 +1,1 @@
+ALTER TABLE parameters ADD COLUMN all_products_image VARCHAR(1000) DEFAULT NULL;

@@ -173,7 +173,7 @@ export function HomePage() {
       >
         <div style={{ maxWidth: theme.container.maxWidth, margin: "0 auto", textAlign: "center" }}>
           <h2 style={{ ...theme.heading.h2, marginBottom: theme.spacing.lg, color: theme.colors.primary.main }}>
-            La naturopathie au service de votre équilibre hormonal et de votre fertilité ».
+            La naturopathie au service de votre équilibre hormonal et de votre fertilité.
           </h2>
           {/* <p
             style={{
@@ -208,7 +208,7 @@ export function HomePage() {
         <div style={{ maxWidth: theme.container.maxWidth, margin: "0 auto" }}>
           <div style={{ textAlign: "center", marginBottom: theme.spacing["3xl"] }}>
             <h2 style={{ ...theme.heading.h2, marginBottom: theme.spacing.lg, color: theme.colors.primary.main }}>
-              Nos tisanes phares
+              Nos produits phares
             </h2>
 
             {loadingCategories ? (
@@ -330,7 +330,7 @@ export function HomePage() {
             ["SOPK / SMOP", "Accompagner les déséquilibres fréquents du cycle."],
             ["Fibrome & myome", "Soutenir le confort féminin avec une approche globale."],
             ["Fertilité", "Aider les femmes, les hommes et les couples dans leur parcours."],
-            ["Endométriose", "Apporter des pistes naturelles en complément du suivi médical."],
+            ["Endométriose & Adénomyose", "Apporter des pistes naturelles en complément du suivi médical."],
           ].map(([title, text]) => (
             <article
               key={title}

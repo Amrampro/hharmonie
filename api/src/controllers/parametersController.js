@@ -142,3 +142,17 @@ export const upsertParameters = async (req, res) => {
     sendApiError(res, e);
   }
 };
+
+// A dedicated update avoids overwriting contact details or other site settings.
+export async function updateAllProductsImage(req, res) {
+  try {
+    const image = req.body?.image_url;
+    if (image !== null && (typeof image !== "string" || image.length > 1000 || !/^(https?:\/\/|\/uploads\/)/i.test(image))) {
+      return res.status(400).json({ error: "Image invalide." });
+    }
+    const [existing] = await query("SELECT id FROM parameters ORDER BY created_at ASC LIMIT 1");
+    if (existing) await query("UPDATE parameters SET all_products_image = ? WHERE id = ?", [image, existing.id]);
+    else await query("INSERT INTO parameters (id, all_products_image) VALUES (UUID(), ?)", [image]);
+    return res.json({ success: true });
+  } catch (error) { sendApiError(res, error); }
+}

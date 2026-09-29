@@ -79,7 +79,7 @@ export function Header({}: HeaderProps) {
     { label: "Événements", to: "/events" },
     { label: "FAQ", to: "/faqs" },
     { label: "Contact", to: "/contact" },
-    { label: "Nos collaborateurs", to: "/collaborators" },
+    { label: "Nos partenaires", to: "/collaborators" },
   ];
 
   const isActive = (to: string) => {
@@ -439,7 +439,7 @@ export function Header({}: HeaderProps) {
                 className="products-mega-card"
                 onClick={() => goToShopCategory()}
               >
-                <img src={defaultCategoryImage} alt="" />
+                <img src={parameters?.all_products_image || defaultCategoryImage} alt="" onError={event => { event.currentTarget.onerror = null; event.currentTarget.src = defaultCategoryImage; }} />
                 <span>Tous les produits</span>
               </button>
 
@@ -487,8 +487,10 @@ export function Header({}: HeaderProps) {
             padding: mobileMenuOpen
               ? `${theme.spacing.lg} ${theme.spacing.lg}`
               : 0,
-            maxHeight: mobileMenuOpen ? "100vh" : "0",
-            overflow: "hidden",
+            maxHeight: mobileMenuOpen ? "calc(100dvh - 160px)" : "0",
+            overflowY: mobileMenuOpen ? "auto" : "hidden",
+            overscrollBehaviorY: "contain",
+            WebkitOverflowScrolling: "touch",
             transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
             opacity: mobileMenuOpen ? 1 : 0,
             visibility: mobileMenuOpen ? "visible" : "hidden",
@@ -558,14 +560,14 @@ export function Header({}: HeaderProps) {
               </button>
               <div
                 style={{
-                  maxHeight: productsDropdownOpen ? 420 : 0,
+                  maxHeight: productsDropdownOpen ? "none" : 0,
                   overflow: "hidden",
                   transition: "max-height 0.3s ease",
                 }}
               >
                 <div className="mobile-category-grid">
                   <button type="button" onClick={() => goToShopCategory()}>
-                    <img src={defaultCategoryImage} alt="" />
+                    <img src={parameters?.all_products_image || defaultCategoryImage} alt="" onError={event => { event.currentTarget.onerror = null; event.currentTarget.src = defaultCategoryImage; }} />
                     <span>Tous les produits</span>
                   </button>
                   {sortedCategories.map((category) => (

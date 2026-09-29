@@ -4,6 +4,7 @@ import { apiEndpoints } from "./apiEndpoints";
 import { http } from "./http";
 
 export type Parameters = {
+  all_products_image: string | null;
   id: string;
 
   promotional_text: string | null;
@@ -88,6 +89,9 @@ async function httpForm<T>(url: string, formData: FormData): Promise<T> {
 }
 
 export const parameterService = {
+  updateAllProductsImage(image_url: string | null) {
+    return http(`${apiEndpoints.parameters.upsert}/all-products-image`, { method: "PUT", body: JSON.stringify({ image_url }) });
+  },
   // Public (Le token est envoyé s'il existe, mais ignoré par le backend sur cette route)
   async get() {
     return http<{ parameters: Parameters | null }>(apiEndpoints.parameters.get);

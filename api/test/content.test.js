@@ -80,3 +80,23 @@ test("content migration and public/admin flows in an isolated database", { skip:
     connection.release(); await pool.end();
   }
 });
+
+
+test("all-products image update preserves other parameters and validates the image", async () => {
+  const writes = [];
+  const controller = await loadController("parametersController", { query: async (sql, params) => {
+    if (sql.startsWith("SELECT id")) return [{ id: "settings" }];
+    writes.push({ sql, params }); return {};
+  } });
+  for (const image of ["/uploads/products/image.jpg", null]) {
+    const res = response();
+    await controller.updateAllProductsImage({ body: { image_url: image } }, res);
+    assert.equal(res.statusCode, 200);
+    assert.equal(writes.at(-1).sql, "UPDATE parameters SET all_products_image = ? WHERE id = ?");
+    assert.equal(writes.at(-1).params[0], image);
+  }
+  const invalid = response();
+  await controller.updateAllProductsImage({ body: { image_url: "javascript:alert(1)" } }, invalid);
+  assert.equal(invalid.statusCode, 400);
+  assert.equal(writes.length, 2);
+});

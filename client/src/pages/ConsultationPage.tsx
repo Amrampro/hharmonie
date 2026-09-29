@@ -60,7 +60,7 @@ export function ConsultationPage() {
     setSlots([]);
     appointmentService.listSlots({ serviceId: selectedService })
       .then((resp) => { if (!cancelled) setSlots(resp.slots || []); })
-      .catch(() => { if (!cancelled) setError("Impossible de charger les créneaux pour cet accompagnement."); });
+      .catch(() => { if (!cancelled) setError("Impossible de charger les créneaux pour cet Consultation."); });
     return () => { cancelled = true; };
   }, [selectedService]);
 
@@ -80,7 +80,7 @@ export function ConsultationPage() {
     setSuccess("");
     setError("");
     if (!selectedService || !availableSlots.some((slot) => slot.id === selectedSlot)) {
-      setError("Choisissez un accompagnement et un créneau.");
+      setError("Choisissez un Consultation et un créneau.");
       return;
     }
     if (!form.consultation_reasons.length) return setError("Sélectionnez au moins un motif de consultation.");
@@ -118,9 +118,9 @@ export function ConsultationPage() {
     <section className="hh-consultation">
       <div className="hh-page-intro">
         <span>Consultation</span>
-        <h1>Réserver un accompagnement</h1>
+        <h1>Réserver une consultation</h1>
         <p>
-          Choisissez votre accompagnement et un créneau, puis complétez le questionnaire
+          Choisissez un créneau, puis complétez le questionnaire
           pour nous aider à préparer votre consultation.
         </p>
       </div>
@@ -134,7 +134,7 @@ export function ConsultationPage() {
       ) : (
         <div className="hh-consultation-grid">
           <aside>
-            <h2>Accompagnements</h2>
+            <h2>Consultations</h2>
             {services.map((service) => {
               const Icon = typeIcon[service.meeting_type] || CalendarDays;
               return (
@@ -173,7 +173,7 @@ export function ConsultationPage() {
                   <span>{slot.start_time.slice(0, 5)} - {slot.end_time.slice(0, 5)}</span>
                   <strong>{Number(slot.price) === 0 ? "Gratuit · 0 €" : euros(slot.price)}</strong>
                 </button>
-              )) : <p>Aucun créneau disponible pour cet accompagnement.</p>}
+              )) : <p>Aucun créneau disponible pour cet Consultation.</p>}
             </div>
 
             <div className="form-grid">

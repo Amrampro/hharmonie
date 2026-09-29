@@ -5,7 +5,7 @@ const pillars = [
   {
     icon: Leaf,
     title: "1. Phytothérapie",
-    text: "Nous utilisons les bienfaits des plantes, notamment à travers nos tisanes H&H;, sélectionnées et formulées selon des besoins spécifiques.",
+    text: "Nous utilisons les bienfaits des plantes, notamment à travers nos tisanes, sélectionnées et formulées selon des besoins spécifiques.",
   },
   {
     icon: Sprout,

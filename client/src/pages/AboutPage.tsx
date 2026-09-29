@@ -30,7 +30,7 @@ export function AboutPage() {
     {
       icon: Sparkles,
       title: "Complète",
-      description: "Produits, conseils et rendez-vous avancent ensemble.",
+      description: "Produits, conseils et rendez-vous.",
     },
   ];
 
@@ -139,6 +139,11 @@ export function AboutPage() {
                 key={index}
                 style={{
                   padding: theme.spacing.xl,
+                  minHeight: 210,
+                  display: "flex",
+                  flexDirection: "column",
+                  justifyContent: "center",
+                  alignItems: "center",
                   backgroundColor: theme.colors.background.sage,
                   borderRadius: theme.borderRadius.lg,
                   textAlign: "center",
@@ -146,11 +151,7 @@ export function AboutPage() {
                   boxShadow: theme.shadow.card,
                 }}
               >
-                <feature.icon
-                  size={48}
-                  color={theme.colors.secondary.main}
-                  style={{ margin: `0 auto ${theme.spacing.md}` }}
-                />
+
                 <h3
                   style={{
                     ...theme.heading.h5,

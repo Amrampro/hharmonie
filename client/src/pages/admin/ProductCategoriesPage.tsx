@@ -1,3 +1,6 @@
+import { parameterService } from "../../services/parameterService";
+import { useSiteParams } from "../../contexts/SiteParamsContext";
+import defaultCategoryImage from "../../assets/img/default_cat.jpg";
 // client/src/pages/admin/ProductCategoriesPage.tsx
 import React, { useEffect, useMemo, useState } from "react";
 import { UploadCloud, X } from "lucide-react";
@@ -49,6 +52,9 @@ function getParentName(categories: ProductCategory[], parentId: any) {
 }
 
 export default function ProductCategoriesPage() {
+  const { parameters, refresh: refreshParameters } = useSiteParams();
+  const [allImageBusy, setAllImageBusy] = useState(false);
+  const [imageNotice, setImageNotice] = useState("");
   const [categories, setCategories] = useState<ProductCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -255,6 +261,20 @@ export default function ProductCategoriesPage() {
     }
   }
 
+  async function updateAllImage(file: File | null) {
+    if (file && (!["image/png", "image/jpeg", "image/webp"].includes(file.type) || file.size > 4 * 1024 * 1024)) {
+      setError("Utilisez une image JPG, PNG ou WEBP de 4 Mo maximum."); return;
+    }
+    setAllImageBusy(true); setError(null); setImageNotice("");
+    try {
+      const url = file ? (await productService.uploadProductImage(file)).url : null;
+      await parameterService.updateAllProductsImage(url);
+      await refreshParameters();
+      setImageNotice("Image « Tous les produits » enregistrée.");
+    } catch (cause: any) { setError(cause.message || "Impossible d’enregistrer l’image."); }
+    finally { setAllImageBusy(false); }
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex items-start justify-between gap-4">
@@ -291,6 +311,15 @@ export default function ProductCategoriesPage() {
           {error}
         </div>
       )}
+
+      <section className="bg-white border rounded-xl p-4 flex flex-wrap items-center gap-4">
+        <img src={parameters?.all_products_image || defaultCategoryImage} alt="Tous les produits" className="w-24 h-24 rounded-lg object-cover" />
+        <div className="space-y-2"><h2 className="font-semibold">Image « Tous les produits »</h2><p className="text-sm text-gray-600">Image affichée dans le menu, sur ordinateur et mobile.</p>
+          <label className="block">Changer l’image<input className="block mt-1" disabled={allImageBusy} type="file" accept="image/jpeg,image/png,image/webp" onChange={event => { const file = event.target.files?.[0]; event.target.value = ""; if (file) void updateAllImage(file); }} /></label>
+          {parameters?.all_products_image && <button type="button" className="underline" disabled={allImageBusy} onClick={() => void updateAllImage(null)}>Rétablir l’image par défaut</button>}
+          {allImageBusy && <p role="status">Enregistrement…</p>}{imageNotice && <p role="status" className="text-green-700">{imageNotice}</p>}
+        </div>
+      </section>
 
       <div className="bg-white border rounded-xl overflow-hidden">
         <div className="px-4 py-3 border-b flex items-center justify-between">
