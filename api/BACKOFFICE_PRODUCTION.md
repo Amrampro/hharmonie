@@ -80,3 +80,16 @@ Le prix d’un nouveau créneau est explicite : 0 € confirme immédiatement sa
 Réutiliser `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` et `CORS_ORIGIN` (adresse publique du site). Sur le webhook Stripe existant `/api/stripe/webhook`, activer `checkout.session.completed` et `checkout.session.expired`. La réservation n’est confirmée qu’après paiement validé côté serveur. La session expire après environ 31 minutes ; un événement d’expiration libère le créneau. La consultation des disponibilités vérifie aussi auprès de Stripe les paiements en attente expirés, en cas de webhook retardé. Un abandon du paiement ne confirme jamais la réservation ; le client peut reprendre le paiement depuis le lien proposé au retour.
 
 Validation locale : base SQL isolée avec migration réelle et Stripe simulé, sans débit bancaire. Avant ouverture en production, vérifier un parcours avec les clés et événements Stripe de test de l’hébergement.
+
+
+## Boutique mobile, événements et suivi après achat (1er octobre 2026)
+
+Appliquer une seule fois `migrations/20261001_add_order_tracking.sql` avant de déployer l’API et le client. Les commandes existantes sont conservées. Les liens d’événements réutilisent `events.online_url`, sans nouvelle colonne.
+
+Dans le `.env` de production, définir `PUBLIC_SITE_URL=https://hharmonie.com`. Cette adresse détermine les retours Stripe et les boutons des emails ; `CORS_ORIGIN` reste la configuration des origines autorisées. Renseigner `SMTP_HOST`, `SMTP_PORT=465`, `SMTP_SECURE=true`, `SMTP_USER`, `SMTP_PASS` et `MAIL_FROM_EMAIL`. `MAIL_FROM_NAME` sert de repli si le nom n’est pas renseigné dans les paramètres. `MAIL_INVOICE_CC` est facultatif. Le nom affiché, les coordonnées, le numéro d’entreprise et l’adresse de réponse proviennent des paramètres de la base. L’adresse d’expédition utilise `MAIL_FROM_EMAIL` pour rester compatible avec l’authentification SMTP.
+
+Le webhook `/api/stripe/webhook` doit recevoir `checkout.session.completed` et `checkout.session.async_payment_succeeded`, en conservant les événements existants des consultations. Le statut payé est vérifié côté serveur et l’échec SMTP est signalé à Stripe pour permettre ses nouvelles tentatives. Le retour sur le site vérifie aussi la session Stripe, ce qui couvre un webhook retardé. Le panier n’est vidé qu’après confirmation du paiement.
+
+Le bouton « Voir sur le site » ouvre `/follow-order` avec une référence et un jeton privé. Les accès par simple identifiant ne donnent plus les données personnelles de la commande. Les anciens emails déjà expédiés avec le domaine Novéden ne sont pas modifiables rétroactivement. Les routes `/order-success` et `/follow-order` doivent servir le client React ; le serveur Node du projet possède déjà ce repli. Si un serveur frontal sert le client directement, configurer également son repli vers `index.html` pour ces routes.
+
+Validation : migration sur une base isolée, Stripe et SMTP simulés, vérification des coordonnées dans l’email, des liens privés, des doublons et des reprises après erreur SMTP. Aucun email réel ni paiement réel n’a été émis pendant ces tests. Vérifier un achat Stripe en mode test sur l’hébergement après déploiement.

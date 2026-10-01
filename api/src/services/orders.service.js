@@ -1,3 +1,6 @@
+import { Buffer } from "node:buffer";
+import { publicSiteUrl, orderTrackingUrl } from "../utils/publicSite.js";
+import { reconcileOrderPayment } from "./orderPayment.service.js";
 // api/src/services/orders.service.js
 import crypto from "node:crypto";
 import Stripe from "stripe";
@@ -301,55 +304,12 @@ export async function createCheckout({
       ],
     );
 
-    /*// 9) Stripe hosted checkout
-    const successUrl = `${process.env.CORS_ORIGIN}/order-success?session_id={CHECKOUT_SESSION_ID}`;
-      // ,"http://localhost:5173/order-success?session_id={CHECKOUT_SESSION_ID}";
-    const cancelUrl = `${process.env.CORS_ORIGIN}/checkout?canceled=1`;
-      // process.env.CORS_ORIGIN || "http://localhost:5173/checkout?canceled=1";
-
-    const stripeCouponId = percentOff ? await createStripePercentCoupon(percentOff, currency) : null;
-
-    // ✅ Ajouter shipping via shipping_options (Stripe gère ça proprement)
-    const session = await stripe.checkout.sessions.create({
-      mode: "payment",
-      line_items: normalizedItems.map((it) => ({
-        quantity: it.quantity,
-        price_data: {
-          currency: "eur",
-          unit_amount: it.unit_price,
-          product_data: { name: it.product_name },
-        },
-      })),
-      discounts: stripeCouponId ? [{ coupon: stripeCouponId }] : undefined,
-
-      // Shipping cost
-      shipping_options: [
-        {
-          shipping_rate_data: {
-            display_name: shipping.method === "mondial_relay" ? "Mondial Relay" : "Livraison à domicile",
-            fixed_amount: { amount: shipping_amount, currency: "eur" },
-            type: "fixed_amount",
-          },
-        },
-      ],
-
-      customer_email: a.email || undefined,
-      metadata: {
-        order_id: orderId,
-        user_id: String(safeUserId),
-        auto_discount_percent: percentOff ? String(percentOff) : "0",
-        shipping_amount: String(shipping_amount),
-        shipping_method: String(shipping.method),
-      },
-      success_url: successUrl,
-      cancel_url: cancelUrl,
-    });*/
-
-    // 9) Stripe hosted checkout
-    const baseUrl = process.env.CORS_ORIGIN || "http://localhost:5173";
+    const baseUrl = publicSiteUrl();
+    const trackingToken = crypto.randomBytes(32).toString("hex");
+    await connection.execute("UPDATE orders SET tracking_token = ? WHERE id = ?", [trackingToken, orderId]);
 
     // ✅ Solution A: retour avec orderId (plus de session_id dans l'URL)
-    const successUrl = `${baseUrl}/order-success?order=${encodeURIComponent(orderId)}`;
+    const successUrl = `${baseUrl}/order-success?order=${encodeURIComponent(orderId)}&token=${trackingToken}&session_id={CHECKOUT_SESSION_ID}`;
     const cancelUrl = `${baseUrl}/checkout?canceled=1`;
 
     const stripeCouponId = percentOff
@@ -419,6 +379,7 @@ export async function createCheckout({
     return {
       order: {
         id: orderId,
+        tracking_token: trackingToken,
         subtotal_amount,
         discount_amount,
         shipping_amount,
@@ -443,36 +404,34 @@ export async function createCheckout({
   }
 }
 
-export async function getOrderForUser({ orderId }) {
-  if (!orderId) throw new Error("orderId is required");
-
-  const [order] = await query(`SELECT * FROM orders WHERE id = ? LIMIT 1`, [
-    orderId,
-  ]);
-  if (!order) throw new Error("Order not found");
-
-  const items = await query(
-    `SELECT * FROM order_items WHERE order_id = ? ORDER BY created_at ASC`,
-    [orderId],
-  );
-  const [address] = await query(
-    `SELECT * FROM order_addresses WHERE order_id = ? LIMIT 1`,
-    [orderId],
-  );
-  const [shipping] = await query(
-    `SELECT * FROM order_shipping WHERE order_id = ? LIMIT 1`,
-    [orderId],
-  );
-  const [payment] = await query(
-    `SELECT * FROM order_payments WHERE order_id = ? LIMIT 1`,
-    [orderId],
-  );
-
-  return {
-    order,
-    items,
-    address: address ?? null,
-    shipping: shipping ?? null,
-    payment: payment ?? null,
-  };
+export async function getOrderForUser({ orderId, token, sessionId }) {
+  if (sessionId) {
+    const [payment] = await query("SELECT order_id FROM order_payments WHERE stripe_checkout_session_id = ? LIMIT 1", [sessionId]);
+    if (!payment || (orderId && payment.order_id !== orderId)) throw new Error("Lien de commande invalide.");
+    orderId = payment.order_id;
+  }
+  const [initial] = await query("SELECT * FROM orders WHERE id = ? LIMIT 1", [orderId || ""]);
+  const validToken = typeof token === "string" && /^[a-f0-9]{64}$/.test(token) && initial?.tracking_token && crypto.timingSafeEqual(Buffer.from(token), Buffer.from(initial.tracking_token));
+  if (!initial || (!sessionId && !validToken)) throw new Error("Utilisez le lien privé reçu dans votre email de confirmation.");
+  const [payment] = await query("SELECT * FROM order_payments WHERE order_id = ? LIMIT 1", [orderId]);
+  if (payment?.stripe_checkout_session_id && (!initial.invoice_sent_at || initial.status === "pending_payment")) {
+    try {
+      const session = await stripe.checkout.sessions.retrieve(payment.stripe_checkout_session_id);
+      await reconcileOrderPayment(session);
+    } catch (error) {
+      // A payment confirmation remains valid even if SMTP is temporarily unavailable.
+      console.error("Order confirmation retry required:", error.code || error.type || "unavailable");
+    }
+  }
+  let [order] = await query("SELECT * FROM orders WHERE id = ? LIMIT 1", [orderId]);
+  if (!order.tracking_token) {
+    await query("UPDATE orders SET tracking_token = COALESCE(tracking_token, ?) WHERE id = ?", [crypto.randomBytes(32).toString("hex"), orderId]);
+    [order] = await query("SELECT * FROM orders WHERE id = ? LIMIT 1", [orderId]);
+  }
+  const items = await query("SELECT * FROM order_items WHERE order_id = ? ORDER BY created_at ASC", [orderId]);
+  const [address] = await query("SELECT * FROM order_addresses WHERE order_id = ? LIMIT 1", [orderId]);
+  const [shipping] = await query("SELECT * FROM order_shipping WHERE order_id = ? LIMIT 1", [orderId]);
+  const tracking_url = orderTrackingUrl(order);
+  const { tracking_token, invoice_send_started_at, ...publicOrder } = order;
+  return { order: publicOrder, items, address: address ?? null, shipping: shipping ?? null, tracking_url };
 }

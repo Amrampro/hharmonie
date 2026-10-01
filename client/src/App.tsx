@@ -82,6 +82,7 @@ function App() {
               <Route path="/checkout" element={<CheckoutPage />} />
               <Route path="/fidelity" element={<FidelitePage />} />
               <Route path="/order-success" element={<OrderSuccessPage />} />
+              <Route path="/follow-order" element={<OrderSuccessPage tracking />} />
               <Route path="/ambassadors" element={<AmbassadorsPage />} />
             </Route>
 

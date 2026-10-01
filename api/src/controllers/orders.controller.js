@@ -1,3 +1,4 @@
+import { sendApiError } from "../utils/apiError.js";
 // api/src/controllers/orders.controller.js
 import { createCheckout, getOrderForUser } from "../services/orders.service.js";
 
@@ -23,10 +24,12 @@ export async function checkout(req, res) {
 export async function getMyOrder(req, res) {
   try {
     const orderId = req.params.id;
-    const data = await getOrderForUser({ orderId });
+    const data = await getOrderForUser({ orderId, token: req.query.token, sessionId: req.params.sessionId });
+    res.setHeader("Cache-Control", "no-store");
     res.json(data);
   } catch (e) {
-    res.status(404).json({ error: e.message || "Not found" });
+    if (e.code) return sendApiError(res, e);
+    res.status(404).json({ error: e.message || "Commande introuvable." });
   }
 }
 
@@ -34,9 +37,11 @@ export async function getMyOrder(req, res) {
 export async function getOrder(req, res) {
   try {
     const orderId = req.params.id;
-    const data = await getOrderForUser({ orderId });
+    const data = await getOrderForUser({ orderId, token: req.query.token, sessionId: req.params.sessionId });
+    res.setHeader("Cache-Control", "no-store");
     res.json(data);
   } catch (e) {
-    res.status(404).json({ error: e.message || "Not found" });
+    if (e.code) return sendApiError(res, e);
+    res.status(404).json({ error: e.message || "Commande introuvable." });
   }
 }

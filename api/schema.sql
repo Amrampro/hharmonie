@@ -221,6 +221,9 @@ CREATE TABLE ambassadors (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE orders (
+  tracking_token VARCHAR(64) DEFAULT NULL,
+  invoice_send_started_at DATETIME DEFAULT NULL,
+
   id VARCHAR(36) NOT NULL PRIMARY KEY,
   order_number VARCHAR(80) DEFAULT NULL,
   user_id VARCHAR(36) DEFAULT NULL,

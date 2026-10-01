@@ -2,7 +2,7 @@ import { reconcileAppointmentPayment } from "../services/appointmentPayments.js"
 // api/src/controllers/stripeWebhook.controller.js
 import Stripe from "stripe";
 import { query } from "../config/database.js";
-import { sendOrderInvoiceEmail } from "../services/email/invoiceEmail.service.js";
+import { reconcileOrderPayment } from "../services/orderPayment.service.js";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: "2024-06-20",
@@ -45,46 +45,9 @@ export async function stripeWebhook(req, res) {
       /**
        * ✅ Le plus important : session payée
        */
-      case "checkout.session.completed": {
-        const session = event.data.object;
-
-        const sessionId = session.id;
-        const orderId = session?.metadata?.order_id || null;
-
-        // payment_intent peut être string id
-        const paymentIntentId =
-          typeof session.payment_intent === "string"
-            ? session.payment_intent
-            : null;
-
-        // Mets à jour order_payments
-        await query(
-          `
-          UPDATE order_payments
-          SET status = 'succeeded',
-              stripe_payment_intent_id = COALESCE(stripe_payment_intent_id, ?),
-              updated_at = NOW()
-          WHERE stripe_checkout_session_id = ?
-          `,
-          [paymentIntentId, sessionId]
-        );
-
-        // Mets à jour orders -> paid
-        if (orderId) {
-          await query(
-            `UPDATE orders SET status = 'paid', updated_at = NOW() WHERE id = ?`,
-            [orderId]
-          );
-          // ✅ envoyer facture (anti-doublon via invoice_sent_at)
-          try {
-            const r = await sendOrderInvoiceEmail(orderId);
-            console.log("[invoice] result:", r);
-          } catch (e) {
-            // ne pas casser le webhook si email échoue
-            console.error("[invoice] failed:", e?.message);
-          }
-        }
-
+      case "checkout.session.completed":
+      case "checkout.session.async_payment_succeeded": {
+        await reconcileOrderPayment(event.data.object);
         break;
       }
 
@@ -97,13 +60,13 @@ export async function stripeWebhook(req, res) {
         const orderId = session?.metadata?.order_id || null;
 
         await query(
-          `UPDATE order_payments SET status='failed', updated_at=NOW() WHERE stripe_checkout_session_id = ?`,
+          `UPDATE order_payments SET status='failed', updated_at=NOW() WHERE stripe_checkout_session_id = ? AND status NOT IN ('succeeded', 'refunded')`,
           [sessionId]
         );
 
         if (orderId) {
           await query(
-            `UPDATE orders SET status='pending_payment', updated_at=NOW() WHERE id = ?`,
+            `UPDATE orders SET status='pending_payment', updated_at=NOW() WHERE id = ? AND status IN ('pending_payment', 'pending')`,
             [orderId]
           );
         }

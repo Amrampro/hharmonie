@@ -1,8 +1,12 @@
+import "dotenv/config";
 // api/src/config/mailer.js
 import nodemailer from "nodemailer";
 
 export const mailer = nodemailer.createTransport({
   host: process.env.SMTP_HOST,
+  connectionTimeout: 15000,
+  greetingTimeout: 15000,
+  socketTimeout: 45000,
   port: Number(process.env.SMTP_PORT || 587),
   secure: String(process.env.SMTP_SECURE || "false") === "true", // true si 465
   auth: {

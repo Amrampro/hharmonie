@@ -1,0 +1,3 @@
+ALTER TABLE orders
+  ADD COLUMN tracking_token VARCHAR(64) DEFAULT NULL,
+  ADD COLUMN invoice_send_started_at DATETIME DEFAULT NULL;

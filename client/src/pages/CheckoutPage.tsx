@@ -353,7 +353,8 @@ export function CheckoutPage() {
         },
       };
 
-      const { stripe } = await ordersService.checkout(payload);
+      const { stripe, order } = await ordersService.checkout(payload);
+      try { sessionStorage.setItem(`order-token:${order.id}`, order.tracking_token); } catch { /* The return URL also contains the private token. */ }
       window.location.href = stripe.checkout_url;
     } catch (e: any) {
       setError(e?.message || "Erreur lors de l'initialisation du paiement");

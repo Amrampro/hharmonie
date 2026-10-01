@@ -24,11 +24,13 @@ const emptyForm = {
 export default function AdminEventsPage() {
   const { error, busy, run } = useAdminAction();
   const [events, setEvents] = useState<EventItem[]>([]);
+  const [eventLinks, setEventLinks] = useState<Record<string, string>>({});
   const [form, setForm] = useState(emptyForm);
 
   const load = async () => {
     const resp = await eventService.list({ admin: true });
     setEvents(resp.events || []);
+    setEventLinks(Object.fromEntries((resp.events || []).map(event => [event.id, event.online_url || ""])));
   };
 
   useEffect(() => {
@@ -85,7 +87,7 @@ export default function AdminEventsPage() {
             </select>
             <input placeholder="Lieu" value={form.location_name} onChange={(e) => setForm({ ...form, location_name: e.target.value })} />
             <input placeholder="Ville" value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} />
-            <input placeholder="Lien en ligne" value={form.online_url} onChange={(e) => setForm({ ...form, online_url: e.target.value })} />
+            <label>Lien de l’événement (facultatif)<input type="url" maxLength={1000} placeholder="https://…" value={form.online_url} onChange={(e) => setForm({ ...form, online_url: e.target.value })} /></label>
           </div>
           <div className="grid gap-3 md:grid-cols-5">
             <input required type="datetime-local" value={form.starts_at} onChange={(e) => setForm({ ...form, starts_at: e.target.value })} />
@@ -111,6 +113,7 @@ export default function AdminEventsPage() {
               <div>
                 <strong>{eventItem.title}</strong>
                 <p className="m-0 text-sm text-slate-500">{eventItem.short_description}</p>
+                <form className="flex flex-wrap gap-2 mt-2" onSubmit={e => { e.preventDefault(); void run(async () => { await eventService.adminUpdate(eventItem.id, { online_url: eventLinks[eventItem.id] ?? eventItem.online_url ?? "" }); await load(); }); }}><input type="url" maxLength={1000} aria-label={`Lien de ${eventItem.title}`} placeholder="Lien de l’événement (facultatif)" value={eventLinks[eventItem.id] ?? eventItem.online_url ?? ""} onChange={e => setEventLinks(current => ({ ...current, [eventItem.id]: e.target.value }))} /><button disabled={busy} type="submit">Enregistrer le lien</button></form>
               </div>
               <span>{new Date(eventItem.starts_at).toLocaleString("fr-FR")}</span>
               <button disabled={busy} type="button" onClick={() => toggleStatus(eventItem)} className="rounded-lg border px-3 py-2">

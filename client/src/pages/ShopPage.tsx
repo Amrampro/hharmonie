@@ -154,8 +154,14 @@ export function ShopPage({ onViewProduct }: ShopPageProps) {
               marginBottom: theme.spacing["2xl"],
             }}
           >
+            <label className="shop-category-select">Catégorie
+              <select value={selectedCategorySlug} onChange={event => selectCategory(event.target.value)} disabled={loadingCategories}>
+                <option value="all">Tous les produits</option>
+                {categoryButtons.map(category => <option key={category.id} value={category.slug}>{category.name}</option>)}
+              </select>
+            </label>
             {/* Categories */}
-            <div
+            <div className="shop-category-buttons"
               style={{
                 display: "flex",
                 flexWrap: "wrap",

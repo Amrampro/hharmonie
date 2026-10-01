@@ -92,6 +92,7 @@ export function EventDetailPage() {
         <div className="event-meta"><CalendarDays size={18} /> {new Date(event.starts_at).toLocaleString("fr-FR", { dateStyle: "long", timeStyle: "short" })}</div>
         <div className="event-meta"><MapPin size={18} /> {event.event_type === "online" ? "En ligne" : [event.location_name, event.city].filter(Boolean).join(" - ")}</div>
         <p style={{ whiteSpace: "pre-line" }}>{event.description}</p>
+        {event.online_url && /^https?:\/\//i.test(event.online_url) && <a className="event-external-link" href={event.online_url} target="_blank" rel="noopener noreferrer">Ouvrir le lien</a>}
       </div>
     </section>
   );

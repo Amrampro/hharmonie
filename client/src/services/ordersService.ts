@@ -23,6 +23,7 @@ export type CheckoutPayload = {
     };
     relay_point?: {
       id: string;
+    tracking_token: string;
       name?: string | null;
       address?: string | null;
     } | null;
@@ -54,7 +55,8 @@ export const ordersService = {
     });
   },
 
-  getOrder(id: string) {
-    return http<any>(apiEndpoints.orders.byId(id), { method: "GET", auth: false }); // ✅ guest
+  getOrder(id: string, token = "", sessionId = "") {
+    const url = sessionId ? `${apiEndpoints.base}/orders/checkout-session/${encodeURIComponent(sessionId)}` : `${apiEndpoints.orders.byId(id)}?token=${encodeURIComponent(token)}`;
+    return http<any>(url, { method: "GET", auth: false });
   },
 };

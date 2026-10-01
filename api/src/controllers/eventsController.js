@@ -1,6 +1,13 @@
+import { URL } from "node:url";
 import { sendApiError } from "../utils/apiError.js";
 import { query } from "../config/database.js";
 import { toMysqlDateTime } from "../utils/dateTime.js";
+
+function eventLink(value) {
+  if (value == null || value === "") return null;
+  try { const url = new URL(value); if (!["http:", "https:"].includes(url.protocol) || url.username || url.password || value.length > 1000) throw new Error(); return url.href; }
+  catch { throw Object.assign(new Error("Le lien de l’événement doit être une adresse HTTP ou HTTPS valide."), { statusCode: 400 }); }
+}
 
 const toSlug = (value) =>
   String(value ?? "")
@@ -70,7 +77,7 @@ export async function adminCreateEvent(req, res) {
         payload.event_type ?? "physical",
         payload.location_name ?? null,
         payload.city ?? null,
-        payload.online_url ?? null,
+        eventLink(payload.online_url),
         toMysqlDateTime(payload.starts_at),
         toMysqlDateTime(payload.ends_at),
         payload.capacity ?? null,
@@ -112,7 +119,7 @@ export async function adminUpdateEvent(req, res) {
     fields.forEach((field) => {
       if (payload[field] === undefined) return;
       patch.push(`${field} = ?`);
-      params.push(field === "slug" ? toSlug(payload[field]) : field === "starts_at" || field === "ends_at" ? toMysqlDateTime(payload[field]) : payload[field]);
+      params.push(field === "online_url" ? eventLink(payload[field]) : field === "slug" ? toSlug(payload[field]) : field === "starts_at" || field === "ends_at" ? toMysqlDateTime(payload[field]) : payload[field]);
     });
     if (patch.length) {
       await query(`UPDATE events SET ${patch.join(", ")} WHERE id = ?`, [...params, req.params.id]);

@@ -9,6 +9,7 @@ const router = Router();
 
 router.post("/checkout", OrdersController.checkout);
 router.get("/user/:id", OrdersController.getMyOrder);
+router.get("/checkout-session/:sessionId", OrdersController.getOrder);
 router.get("/:id", OrdersController.getOrder);
 
 export default router;

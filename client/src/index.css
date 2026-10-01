@@ -305,3 +305,27 @@ body {
 .hh-botanical-accent { position:absolute; bottom:-26px; right:12px; font:100px Georgia,serif; color:#bba166; opacity:.25; z-index:-1; }
 .hh-botanical-0 .hh-botanical-accent { color:#d2a334; left:6px; right:auto; }
 @media(max-width:640px) { .hh-testimonial-card { height:460px; flex-basis:85%; } .hh-testimonials { padding:44px 18px; } .hh-dialog-copy { padding:22px; } }
+
+.shop-category-select { display:none; }
+.event-external-link { display:inline-block; padding:12px 22px; border-radius:8px; background:#a47788; color:#fff; text-decoration:none; margin:14px 0; font-weight:600; }
+@media (max-width:767px) {
+  .shop-category-buttons { display:none !important; }
+  .shop-category-select { display:block; font-weight:600; }
+  .shop-category-select select { display:block; width:100%; max-width:100%; margin-top:8px; padding:14px 12px; border:1px solid #a47788; border-radius:8px; background:#fff; color:#493333; font-size:16px; }
+}
+
+.order-follow-page { max-width:1180px; margin:auto; padding:48px 20px; overflow-wrap:anywhere; }
+.order-follow-page header { margin-bottom:28px; }
+.order-follow-page h1 { font:clamp(32px,5vw,48px) Georgia,serif; color:#a47788; margin:14px 0; }
+.order-follow-page h2 { font:26px Georgia,serif; margin:0 0 24px; color:#a47788; }
+.order-follow-page p { margin:12px 0; line-height:1.7; }
+.order-follow-grid { display:grid; grid-template-columns:1.5fr 1fr; gap:24px; margin:28px 0; }
+.order-follow-grid article { min-width:0; background:white; border:1px solid #eadfe2; border-radius:14px; padding:24px; }
+.order-follow-item { display:flex; gap:18px; justify-content:space-between; padding:15px 0; border-bottom:1px solid #eadfe2; }
+.order-follow-item>strong { white-space:nowrap; }
+.order-totals>div { display:flex; justify-content:space-between; gap:16px; margin:12px 0; }
+.order-totals>div:last-child { font-weight:700; border-top:1px solid #eadfe2; padding-top:14px; }
+.order-paid { color:#286447; font-weight:700; }
+.order-refresh { border:1px solid #a47788; border-radius:8px; padding:9px 14px; background:white; cursor:pointer; }
+.order-follow-page address { font-style:normal; line-height:1.7; }
+@media(max-width:767px) { .order-follow-grid { grid-template-columns:1fr; } }

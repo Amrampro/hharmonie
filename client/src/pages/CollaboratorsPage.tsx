@@ -29,7 +29,7 @@ export function CollaboratorsPage() {
     <section className="hh-collaborators">
       <header>
         <span>HORMONE & HARMONIE</span>
-        <h1>Nos collaborateurs</h1>
+        <h1>Nos Partenaires</h1>
         <p>Découvrez les entreprises avec lesquelles Hormone & Harmonie collabore</p>
       </header>
       {loading ? (
@@ -37,7 +37,7 @@ export function CollaboratorsPage() {
       ) : error ? (
         <p role="alert">{error}</p>
       ) : !items.length ? (
-        <p>Nos collaborateurs seront bientôt présentés ici.</p>
+        <p>Nos partenaires seront bientôt présentés ici.</p>
       ) : (
         <div className="hh-collaborator-grid">
           {items.map((item) => (

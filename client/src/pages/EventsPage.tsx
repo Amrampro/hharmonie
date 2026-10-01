@@ -29,6 +29,7 @@ export function EventsPage() {
                 <small><CalendarDays size={15} /> {new Date(event.starts_at).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" })}</small>
                 <h2>{event.title}</h2>
                 <p>{event.short_description}</p>
+        {event.online_url && /^https?:\/\//i.test(event.online_url) && <a className="event-external-link" href={event.online_url} target="_blank" rel="noopener noreferrer">Ouvrir le lien</a>}
                 <small><MapPin size={15} /> {event.event_type === "online" ? "En ligne" : [event.location_name, event.city].filter(Boolean).join(" - ")}</small>
                 <Button onClick={() => navigate(`/events/${event.slug}`)}>Voir l'événement</Button>
               </div>
