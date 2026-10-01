@@ -31,15 +31,17 @@ test("content migration and public/admin flows in an isolated database", { skip:
     await connection.query("SET SESSION sql_mode = 'STRICT_ALL_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION'");
     await connection.query("CREATE TABLE products (id VARCHAR(36) PRIMARY KEY, name VARCHAR(190), slug VARCHAR(190), image_url VARCHAR(1000), price DECIMAL(10,2)) ENGINE=InnoDB");
     const parameters = readExpectedSchema().find(table => table.name === "parameters").create.replace(/[^\r\n]*tiktok_link[^\r\n]*\r?\n/, "");
-    await connection.query(parameters);
+    await connection.query(parameters.replace(/[^\r\n]*whatsapp_after_purchase_link[^\r\n]*\r?\n/, ""));
+    await connection.query(await readFile(new URL("../migrations/20261001_add_whatsapp_after_purchase.sql", import.meta.url), "utf8"));
     await connection.query("INSERT INTO products VALUES ('product', 'Produit test', 'produit-test', '/uploads/p.jpg', 29.90)");
     const migration = await readFile(new URL("../migrations/20260921_add_testimonials_collaborators_contact.sql", import.meta.url), "utf8");
     for (const statement of migration.split(";").filter(s => s.trim())) await connection.query(statement);
     const database = { query: async (sql, params = []) => (await connection.execute(sql, params))[0] };
     const paramsApi = await loadController("parametersController", database);
     for (const link of ["https://www.tiktok.com/@first", "https://www.tiktok.com/@updated"]) {
-      const res = response(); await paramsApi.upsertParameters({ body: { tiktok_link: link } }, res);
+      const res = response(); await paramsApi.upsertParameters({ body: { tiktok_link: link, whatsapp_after_purchase_link: link.replace("www.tiktok.com/@", "chat.whatsapp.com/") } }, res);
       assert.ok(res.statusCode < 300, JSON.stringify(res.body)); assert.equal(res.body.parameters.tiktok_link, link);
+      assert.equal(res.body.parameters.whatsapp_after_purchase_link, link.replace("www.tiktok.com/@", "chat.whatsapp.com/"));
     }
     const routes = await loadController("../routes/content.routes", database, { "auth.js": {
       authenticateToken: (req, res, next) => req.headers.authorization ? next() : res.status(401).json({ error: "Auth" }),
@@ -99,4 +101,13 @@ test("all-products image update preserves other parameters and validates the ima
   await controller.updateAllProductsImage({ body: { image_url: "javascript:alert(1)" } }, invalid);
   assert.equal(invalid.statusCode, 400);
   assert.equal(writes.length, 2);
+});
+
+test("post-purchase link rejects unsafe URLs before database access", async () => {
+  const controller = await loadController("parametersController", { query: async () => { throw new Error("Unexpected database access"); } });
+  for (const link of ["javascript:alert(1)", "http://wa.me/123", "https://user:pass@wa.me/123", 123]) {
+    const res = response();
+    await controller.upsertParameters({ body: { whatsapp_after_purchase_link: link } }, res);
+    assert.equal(res.statusCode, 400);
+  }
 });

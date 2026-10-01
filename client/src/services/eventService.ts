@@ -17,7 +17,7 @@ export type EventItem = {
   capacity: number | null;
   price: number;
   currency: string;
-  status: "draft" | "published" | "cancelled" | "completed";
+  status: "draft" | "published" | "archived";
   created_at: string;
 };
 

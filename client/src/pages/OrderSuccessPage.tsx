@@ -51,10 +51,15 @@ export default function OrderSuccessPage({ tracking = false }: { tracking?: bool
   const order = data?.order;
   const paid = Boolean(order && paidStates.includes(order.status));
   const money = (value: number) => (Number(value) / 100).toLocaleString("fr-BE", { style: "currency", currency: order?.currency || "EUR" });
+  const whatsappAfterPurchase = parameters?.whatsapp_after_purchase_link?.trim() || "";
   const trackingUrl = data?.shipping?.tracking_url || order?.shipping_tracking_url;
   const trackingNumber = data?.shipping?.tracking_number || order?.shipping_tracking_number;
   return <section className="order-follow-page">
     <Helmet><title>{tracking ? "Suivi des commandes" : "Confirmation de commande"} — {parameters?.name || "Hormones & Harmonie"}</title><meta name="robots" content="noindex,nofollow" /><meta name="referrer" content="no-referrer" /></Helmet>
+    {!tracking && paid && /^https:\/\//i.test(whatsappAfterPurchase) && <aside className="order-whatsapp-callout" aria-labelledby="order-whatsapp-title">
+      <h2 id="order-whatsapp-title">Accédez à notre espace WhatsApp après votre achat</h2>
+      <a href={whatsappAfterPurchase} target="_blank" rel="noopener noreferrer">Cliquez ici pour accéder au lien WhatsApp <span aria-hidden="true">↗</span></a>
+    </aside>}
     <header><span>{parameters?.name || "Hormones & Harmonie"}</span><h1>{tracking ? "Suivi des commandes" : paid ? "Merci pour votre commande !" : "Votre commande"}</h1>
       {order && <><p>Référence : <strong>{order.order_number || order.id}</strong></p><p role="status" className={paid ? "order-paid" : ""}>{labels[order.status] || order.status}</p></>}
       {!id && !session && <p>Pour retrouver votre commande, cliquez sur « Voir sur le site » dans votre email de confirmation.</p>}

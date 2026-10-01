@@ -1,3 +1,4 @@
+import { URL } from "node:url";
 import { sendApiError } from "../utils/apiError.js";
 // api/src/controllers/parametersController.js
 import { query } from "../config/database.js";
@@ -16,6 +17,13 @@ export const getParameters = async (req, res) => {
 
 export const upsertParameters = async (req, res) => {
   try {
+    const afterPurchaseLink = req.body?.whatsapp_after_purchase_link;
+    if (afterPurchaseLink != null && afterPurchaseLink !== "") {
+      try {
+        const url = new URL(afterPurchaseLink);
+        if (typeof afterPurchaseLink !== "string" || afterPurchaseLink.length > 1000 || url.protocol !== "https:" || url.username || url.password) throw new Error();
+      } catch { return res.status(400).json({ error: "Le lien WhatsApp après achat doit être une adresse HTTPS valide." }); }
+    }
     const rows = await query(
       "SELECT id FROM parameters ORDER BY created_at ASC LIMIT 1"
     );
@@ -37,6 +45,7 @@ export const upsertParameters = async (req, res) => {
       tiktok_link: req.body?.tiktok_link ?? null,
       twitter_link: req.body?.twitter_link ?? null,
       whatsapp_link: req.body?.whatsapp_link ?? null,
+      whatsapp_after_purchase_link: afterPurchaseLink?.trim() || null,
 
       // ✅ new
       logo_navbar: req.body?.logo_navbar ?? null,
@@ -65,6 +74,7 @@ export const upsertParameters = async (req, res) => {
           tiktok_link = ?,
           twitter_link = ?,
           whatsapp_link = ?,
+          whatsapp_after_purchase_link = ?,
           logo_navbar = ?,
           logo_footer = ?
         WHERE id = ?
@@ -86,6 +96,7 @@ export const upsertParameters = async (req, res) => {
           payload.tiktok_link,
           payload.twitter_link,
           payload.whatsapp_link,
+          payload.whatsapp_after_purchase_link,
           payload.logo_navbar,
           payload.logo_footer,
           id,
@@ -106,9 +117,9 @@ export const upsertParameters = async (req, res) => {
       `
       INSERT INTO parameters
         (id, promotional_text, home_text, story, mission, vision, expertise, name, email, address, phone, enterprise_number,
-         facebook_link, instagram_link, tiktok_link, twitter_link, whatsapp_link,
+         facebook_link, instagram_link, tiktok_link, twitter_link, whatsapp_link, whatsapp_after_purchase_link,
          logo_navbar, logo_footer)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `,
       [
         id,
@@ -128,6 +139,7 @@ export const upsertParameters = async (req, res) => {
           payload.tiktok_link,
         payload.twitter_link,
         payload.whatsapp_link,
+        payload.whatsapp_after_purchase_link,
         payload.logo_navbar,
         payload.logo_footer,
       ]

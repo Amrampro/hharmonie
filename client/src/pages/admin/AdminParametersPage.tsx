@@ -22,6 +22,7 @@ type FormState = {
   tiktok_link: string;
   twitter_link: string;
   whatsapp_link: string;
+  whatsapp_after_purchase_link: string;
 
   // ✅ new
   logo_navbar: string;
@@ -48,6 +49,7 @@ const emptyForm = (): FormState => ({
   tiktok_link: "",
   twitter_link: "",
   whatsapp_link: "",
+  whatsapp_after_purchase_link: "",
 
   logo_navbar: "",
   logo_footer: "",
@@ -116,6 +118,7 @@ export default function AdminParametersPage() {
         tiktok_link: toText((parameters as any).tiktok_link),
         twitter_link: toText((parameters as any).twitter_link),
         whatsapp_link: toText((parameters as any).whatsapp_link),
+        whatsapp_after_purchase_link: toText((parameters as any).whatsapp_after_purchase_link),
 
         // ✅ new
         logo_navbar: toText((parameters as any).logo_navbar),
@@ -141,6 +144,7 @@ export default function AdminParametersPage() {
       { value: form.tiktok_link, label: "TikTok link" },
       { value: form.twitter_link, label: "Twitter link" },
       { value: form.whatsapp_link, label: "WhatsApp link" },
+      { value: form.whatsapp_after_purchase_link, label: "Lien WhatsApp après achat" },
       { value: form.logo_navbar, label: "Logo navbar URL" },
       { value: form.logo_footer, label: "Logo footer URL" },
     ];
@@ -185,6 +189,7 @@ export default function AdminParametersPage() {
         tiktok_link: toNull(form.tiktok_link),
         twitter_link: toNull(form.twitter_link),
         whatsapp_link: toNull(form.whatsapp_link),
+        whatsapp_after_purchase_link: toNull(form.whatsapp_after_purchase_link),
 
         // ✅ new
         logo_navbar: toNull(form.logo_navbar),
@@ -574,6 +579,19 @@ export default function AdminParametersPage() {
                 disabled={!canSubmit}
                 placeholder="https://wa.me/..."
               />
+            </Field>
+
+            <Field label="Lien WhatsApp après achat">
+              <input type="url" maxLength={1000}
+                value={form.whatsapp_after_purchase_link}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, whatsapp_after_purchase_link: e.target.value }))
+                }
+                className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-black/20"
+                disabled={!canSubmit}
+                placeholder="https://chat.whatsapp.com/..."
+              />
+            <p className="mt-1 text-sm text-slate-500">Affiché uniquement sur la page de succès après paiement confirmé. Laissez vide pour masquer cet encadré.</p>
             </Field>
           </div>
         </Section>

@@ -318,6 +318,7 @@ CREATE TABLE faqs (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE parameters (
+  whatsapp_after_purchase_link VARCHAR(1000) DEFAULT NULL,
   all_products_image VARCHAR(1000) DEFAULT NULL,
   tiktok_link VARCHAR(1000) DEFAULT NULL,
   id VARCHAR(36) NOT NULL PRIMARY KEY,

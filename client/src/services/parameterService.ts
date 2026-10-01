@@ -26,6 +26,7 @@ export type Parameters = {
   tiktok_link: string | null;
   twitter_link: string | null;
   whatsapp_link: string | null;
+  whatsapp_after_purchase_link: string | null;
 
   // ✅ new
   logo_navbar: string | null;
@@ -54,6 +55,7 @@ export type UpsertParametersPayload = Partial<
     | "tiktok_link"
     | "twitter_link"
     | "whatsapp_link"
+    | "whatsapp_after_purchase_link"
     | "logo_navbar"
     | "logo_footer"
   >
