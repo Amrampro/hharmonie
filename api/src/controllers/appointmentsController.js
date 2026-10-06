@@ -1,7 +1,8 @@
+import { meetingUrl, confirmationUrl, readConfirmation, sendAppointmentConfirmation } from "../services/appointmentConfirmation.js";
 import { priceInCents, createAppointmentCheckout, expireAppointmentCheckout, refreshExpiredAppointmentPayments, getAppointmentPayment } from "../services/appointmentPayments.js";
 import { sendApiError } from "../utils/apiError.js";
 import { getConnection, query } from "../config/database.js";
-import { randomUUID } from "node:crypto";
+import { randomUUID, randomBytes } from "node:crypto";
 import { Buffer } from "node:buffer";
 import { validateConsultation } from "../utils/consultationForm.js";
 import { releaseTransaction } from "../utils/transaction.js";
@@ -76,18 +77,19 @@ export async function bookAppointment(req, res) {
 
     const cents = priceInCents(slots[0].price);
     const number = appointmentNumber();
+    const token = randomBytes(32).toString("hex");
     await connection.execute("UPDATE appointment_slots SET status = 'booked' WHERE id = ?", [slot_id]);
     const [created] = await connection.execute(
       `INSERT INTO appointments
        (appointment_number, service_id, slot_id, first_name, last_name, email, phone,
         gender, age, baby_project, main_concern, consulted_professional, exams_description,
-        has_diagnosis, diagnosis_details, consultation_reasons, consultation_reason_other, status, amount_cents, payment_status)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        has_diagnosis, diagnosis_details, consultation_reasons, consultation_reason_other, status, amount_cents, payment_status, platform_preference, confirmation_token, meeting_url)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [number, service_id, slot_id, first_name, last_name, email, phone,
         data.gender, data.age, data.baby_project, data.main_concern, data.consulted_professional,
         data.exams_description, data.has_diagnosis, data.diagnosis_details,
         JSON.stringify(data.consultation_reasons), data.consultation_reason_other,
-        cents === 0 ? "confirmed" : "pending_payment", cents, cents === 0 ? "free" : "pending"]
+        cents === 0 ? "confirmed" : "pending_payment", cents, cents === 0 ? "free" : "pending", data.platform_preference, token, slots[0].meeting_url ?? null]
     );
     for (const file of req.files ?? []) {
       const name = file.originalname.replace(/[\\/\x00-\x1f\x7f]/g, "_").slice(0, 180) || "document";
@@ -109,7 +111,12 @@ export async function bookAppointment(req, res) {
     }
     await connection.commit();
     committed = true;
-    res.status(201).json({ appointment_number: number, checkout_url: checkout?.url ?? null, payment_status: cents === 0 ? "free" : "pending" });
+    await releaseTransaction(connection, true);
+    connection = undefined;
+    if (cents === 0) {
+      try { await sendAppointmentConfirmation(number); } catch { console.error("Appointment confirmation email failed; retry on confirmation page"); }
+    }
+    res.status(201).json({ confirmation_url: confirmationUrl(token), appointment_number: number, checkout_url: checkout?.url ?? null, payment_status: cents === 0 ? "free" : "pending" });
   } catch (error) {
     console.error("Book appointment error:", { code: error.code, message: error.statusCode === 400 ? error.message : "Reservation failed" });
     sendApiError(res, error);
@@ -119,6 +126,17 @@ export async function bookAppointment(req, res) {
       try { await expireAppointmentCheckout(checkout.id); } catch { console.error("Unable to expire uncommitted appointment checkout"); }
     }
   }
+}
+
+export async function appointmentConfirmation(req, res) {
+  try {
+    res.setHeader("Cache-Control", "no-store");
+    const appointment = await readConfirmation(req.params.token);
+    if (appointment.appointment_number && !appointment.confirmation_sent_at) {
+      try { await sendAppointmentConfirmation(appointment.appointment_number); } catch { console.error("Appointment confirmation email unavailable"); }
+    }
+    res.json({ appointment: await readConfirmation(req.params.token) });
+  } catch (error) { sendApiError(res, error); }
 }
 
 export async function appointmentPaymentStatus(req, res) {
@@ -211,10 +229,11 @@ export async function adminCreateSlot(req, res) {
     }
     if (!["available", "blocked"].includes(status)) return res.status(400).json({ error: "Statut invalide." });
     const cents = priceInCents(price);
+    const meeting = meetingUrl(req.body?.meeting_url);
     await query(
-      `INSERT INTO appointment_slots (id, service_id, available_date, start_time, end_time, status, price)
-       VALUES (UUID(), ?, ?, ?, ?, ?, ?)` ,
-      [service_id, available_date, start_time, end_time, status, cents / 100]
+      `INSERT INTO appointment_slots (id, service_id, available_date, start_time, end_time, status, price, meeting_url)
+       VALUES (UUID(), ?, ?, ?, ?, ?, ?, ?)` ,
+      [service_id, available_date, start_time, end_time, status, cents / 100, meeting]
     );
     const rows = await query(
       `SELECT s.*, sv.name AS service_name
@@ -236,6 +255,7 @@ export async function adminUpdateSlot(req, res) {
     const { id } = req.params;
     const { service_id, available_date, start_time, end_time, status, price } = req.body ?? {};
     if (status !== undefined && !["available", "blocked"].includes(status)) return res.status(400).json({ error: "Statut invalide." });
+    const meeting = req.body?.meeting_url === undefined ? undefined : meetingUrl(req.body.meeting_url);
     const amount = price === undefined ? null : priceInCents(price) / 100;
     const updated = await query(
       `UPDATE appointment_slots
@@ -244,9 +264,10 @@ export async function adminUpdateSlot(req, res) {
            start_time = COALESCE(?, start_time),
            end_time = COALESCE(?, end_time),
            status = COALESCE(?, status),
-           price = COALESCE(?, price)
+           price = COALESCE(?, price),
+           meeting_url = CASE WHEN ? THEN ? ELSE meeting_url END
        WHERE id = ? AND status <> 'booked'`,
-      [service_id ?? null, available_date ?? null, start_time ?? null, end_time ?? null, status ?? null, amount, id]
+      [service_id ?? null, available_date ?? null, start_time ?? null, end_time ?? null, status ?? null, amount, meeting !== undefined ? 1 : 0, meeting ?? null, id]
     );
     if (!updated.affectedRows) return res.status(409).json({ error: "Créneau réservé ou introuvable : modification impossible." });
     const rows = await query(

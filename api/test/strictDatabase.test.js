@@ -72,6 +72,8 @@ test("backoffice against strict SQL in isolated temporary tables", { skip: proce
     for (const [label, idDefinition] of [["numeric", "BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY"], ["UUID", "VARCHAR(36) NOT NULL PRIMARY KEY"]]) {
       await t.test(`FAQ creation and pagination with ${label} identifiers`, async () => {
         await recreate("faqs", idDefinition);
+        await recreate("faq_categories");
+        await database.query("INSERT INTO faq_categories (name) VALUES ('Général')");
         const api = await loadController("faqsController", database);
         const created = response();
         await api.createFaq({ body: { question: "Question ?", answer: "Réponse" } }, created);

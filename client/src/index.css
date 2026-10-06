@@ -335,3 +335,7 @@ body {
 .order-whatsapp-callout a { display:inline-block; padding:16px 24px; border-radius:10px; background:#1d4ed8; color:white; font-size:clamp(18px,2.5vw,24px); font-weight:700; text-decoration:none; line-height:1.4; }
 .order-whatsapp-callout a:hover { background:#1e40af; }
 .order-whatsapp-callout a:focus-visible { outline:3px solid #172554; outline-offset:4px; }
+
+.consultation-confirmation-notice { background: #edf6ef; border: 1px solid #95b89c; border-radius: 12px; padding: 20px; margin: 24px 0; }
+.consultation-confirmation-card { background: #fff; border: 1px solid #e8d8d3; border-radius: 16px; padding: clamp(20px, 4vw, 40px); }
+.consultation-confirmation-card > p { margin-bottom: 20px; }

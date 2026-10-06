@@ -17,6 +17,7 @@ DROP TABLE IF EXISTS ambassador_payouts;
 DROP TABLE IF EXISTS banners;
 DROP TABLE IF EXISTS parameters;
 DROP TABLE IF EXISTS faqs;
+DROP TABLE IF EXISTS faq_categories;
 DROP TABLE IF EXISTS order_payments;
 DROP TABLE IF EXISTS order_shipping;
 DROP TABLE IF EXISTS order_items;
@@ -307,6 +308,13 @@ CREATE TABLE order_payments (
   CONSTRAINT fk_order_payments_order FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE faq_categories (
+  name VARCHAR(120) NOT NULL PRIMARY KEY,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT INTO faq_categories (name) VALUES ('Général');
+
 CREATE TABLE faqs (
   id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
   question VARCHAR(500) NOT NULL,
@@ -422,6 +430,7 @@ CREATE TABLE appointment_services (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE appointment_slots (
+  meeting_url VARCHAR(1000) DEFAULT NULL,
   price DECIMAL(10,2) NOT NULL DEFAULT 0.00,
   id VARCHAR(36) NOT NULL PRIMARY KEY,
   service_id VARCHAR(36) NOT NULL,
@@ -435,6 +444,12 @@ CREATE TABLE appointment_slots (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE appointments (
+  platform_preference ENUM('default','whatsapp','google_meet','zoom') NOT NULL DEFAULT 'default',
+  meeting_url VARCHAR(1000) DEFAULT NULL,
+  confirmation_token CHAR(64) DEFAULT NULL UNIQUE,
+  confirmation_sent_at DATETIME DEFAULT NULL,
+  confirmation_send_started_at DATETIME DEFAULT NULL,
+
   amount_cents INT UNSIGNED DEFAULT NULL,
   payment_status ENUM('free','pending','paid','expired') DEFAULT NULL,
   stripe_session_id VARCHAR(255) DEFAULT NULL UNIQUE,

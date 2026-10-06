@@ -1,3 +1,6 @@
+import { randomBytes } from "node:crypto";
+import { publicSiteUrl } from "../utils/publicSite.js";
+import { confirmationUrl, sendAppointmentConfirmation } from "./appointmentConfirmation.js";
 import Stripe from "stripe";
 import { getConnection, query } from "../config/database.js";
 import { releaseTransaction } from "../utils/transaction.js";
@@ -16,13 +19,13 @@ export function priceInCents(value) {
   return cents;
 }
 export async function createAppointmentCheckout(number, email, cents) {
-  const origin = (process.env.CORS_ORIGIN || "http://localhost:5173").split(",")[0].trim().replace(/\/$/, "");
+  const origin = publicSiteUrl();
   return stripe().checkout.sessions.create({
     mode: "payment", payment_method_types: ["card"], customer_email: email,
     metadata: { kind: "appointment", appointment_number: number },
     line_items: [{ quantity: 1, price_data: { currency: "eur", unit_amount: cents, product_data: { name: "Réservation de consultation" } } }],
     expires_at: Math.floor(Date.now() / 1000) + 31 * 60,
-    success_url: `${origin}/consultation?session_id={CHECKOUT_SESSION_ID}`,
+    success_url: `${origin}/consultation/confirmation?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${origin}/consultation?payment=cancelled`,
     locale: "fr",
   }, { idempotencyKey: number });
@@ -51,6 +54,7 @@ export async function reconcileAppointmentPayment(session) {
     }
     await connection.commit(); committed = true;
   } finally { await releaseTransaction(connection, committed); }
+  if (session.payment_status === "paid") await sendAppointmentConfirmation(session.metadata.appointment_number);
 }
 export async function refreshExpiredAppointmentPayments(slotId) {
   const rows = await query(`SELECT stripe_session_id FROM appointments WHERE payment_status = 'pending' AND payment_expires_at <= UNIX_TIMESTAMP()${slotId ? " AND slot_id = ?" : ""} ORDER BY payment_expires_at LIMIT 20`, slotId ? [slotId] : []);
@@ -61,10 +65,16 @@ export async function refreshExpiredAppointmentPayments(slotId) {
   }
 }
 export async function getAppointmentPayment(sessionId) {
-  const [record] = await query("SELECT appointment_number, status, payment_status FROM appointments WHERE stripe_session_id = ?", [sessionId]);
+  const [record] = await query("SELECT appointment_number, status, payment_status, confirmation_token FROM appointments WHERE stripe_session_id = ?", [sessionId]);
   if (!record) throw Object.assign(new Error("Paiement introuvable."), { statusCode: 404 });
+  if (!record.confirmation_token) await query("UPDATE appointments SET confirmation_token = ? WHERE stripe_session_id = ? AND confirmation_token IS NULL", [randomBytes(32).toString("hex"), sessionId]);
   const session = await stripe().checkout.sessions.retrieve(sessionId);
-  await reconcileAppointmentPayment(session);
-  const [updated] = await query("SELECT appointment_number, status, payment_status FROM appointments WHERE stripe_session_id = ?", [sessionId]);
-  return { ...updated, checkout_url: session.status === "open" ? session.url : null };
+  try { await reconcileAppointmentPayment(session); } catch (error) {
+    const [saved] = await query("SELECT payment_status FROM appointments WHERE stripe_session_id = ?", [sessionId]);
+    if (saved?.payment_status !== "paid") throw error;
+    console.error("Appointment email pending; payment recorded");
+  }
+  const [updated] = await query("SELECT appointment_number, status, payment_status, confirmation_token FROM appointments WHERE stripe_session_id = ?", [sessionId]);
+  const { confirmation_token, ...publicStatus } = updated;
+  return { ...publicStatus, confirmation_url: confirmation_token && ["paid", "free"].includes(updated.payment_status) ? confirmationUrl(confirmation_token) : null, checkout_url: session.status === "open" ? session.url : null };
 }

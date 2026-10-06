@@ -56,6 +56,8 @@ function normalizeFaq(raw: any): Faq {
 }
 
 export const faqsService = {
+  listCategories() { return http<{ categories: { name: string }[] }>(`${apiEndpoints.faqs.list}/categories`, { auth: false }); },
+  createCategory(name: string) { return http<{ category: { name: string } }>(`${apiEndpoints.faqs.list}/admin/categories`, { method: "POST", body: JSON.stringify({ name }) }); },
   // ---------- Public ----------
   async listFaqs(params: ListFaqsParams = {}) {
     // Le token sera envoyé s'il existe (via http importé), mais la route est publique donc pas de souci

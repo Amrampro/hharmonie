@@ -22,6 +22,7 @@ export function validateConsultation(body, files = []) {
     last_name: text("last_name", "Le nom", 100, true),
     email: text("email", "L’e-mail", 190, true),
     phone: text("phone", "Le téléphone", 30),
+    platform_preference: body.platform_preference ?? "default",
     gender: body.gender,
     age: body.age,
     baby_project: boolean("baby_project", "projet bébé"),
@@ -30,6 +31,7 @@ export function validateConsultation(body, files = []) {
     exams_description: text("exams_description", "Les examens réalisés", 10000),
     has_diagnosis: boolean("has_diagnosis", "diagnostic reçu"),
   };
+  if (!["default", "whatsapp", "google_meet", "zoom"].includes(result.platform_preference)) invalid("Choisissez une plateforme parmi les options proposées.");
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(result.email)) invalid("L’adresse e-mail est invalide.");
   if (!["female", "male"].includes(result.gender)) invalid("Veuillez sélectionner Femme ou Homme.");
   if (!Number.isInteger(result.age) || result.age < 1 || result.age > 120) invalid("L’âge doit être un nombre entier compris entre 1 et 120.");

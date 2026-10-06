@@ -14,11 +14,13 @@ const emptyForm = (): FormState => ({
   id: undefined,
   question: "",
   answer: "",
-  category: "",
+  category: "Général",
   display_order: "0",
 });
 
 export default function AdminFaqsPage() {
+  const [categories, setCategories] = useState<string[]>([]);
+  const [newCategory, setNewCategory] = useState("");
   const [faqs, setFaqs] = useState<Faq[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -38,12 +40,12 @@ export default function AdminFaqsPage() {
     setLoading(true);
     try {
       const { faqs } = await faqsService.listFaqs({
-        search: search.trim() || undefined,
-        category: categoryFilter.trim() || undefined,
+
         limit: 500,
         offset: 0,
       });
       setFaqs(faqs || []);
+      setCategories((await faqsService.listCategories()).categories.map(c => c.name));
     } catch (e: any) {
       setError(e?.message || "Failed to load FAQs");
     } finally {
@@ -55,15 +57,6 @@ export default function AdminFaqsPage() {
     refresh();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  const categories = useMemo(() => {
-    const set = new Set<string>();
-    for (const f of faqs) {
-      const c = String(f.category ?? "").trim();
-      if (c) set.add(c);
-    }
-    return Array.from(set).sort((a, b) => a.localeCompare(b));
-  }, [faqs]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -94,7 +87,7 @@ export default function AdminFaqsPage() {
       id: f.id,
       question: String(f.question ?? ""),
       answer: String(f.answer ?? ""),
-      category: String(f.category ?? ""),
+      category: String(f.category || "Général"),
       display_order: String((f as any).display_order ?? 0),
     });
   }
@@ -105,7 +98,7 @@ export default function AdminFaqsPage() {
     const n = Number(form.display_order);
     if (!Number.isFinite(n) || n < 0) return "Display order must be a number >= 0";
     if (form.question.trim().length > 500) return "Question must be <= 500 chars";
-    if (form.category.trim().length > 100) return "Category must be <= 100 chars";
+    if (form.category.trim().length > 120) return "La catégorie doit contenir au maximum 120 caractères";
     return null;
   }
 
@@ -189,6 +182,15 @@ export default function AdminFaqsPage() {
         </div>
       )}
 
+      <form className="bg-white border rounded-xl p-4 flex flex-wrap items-end gap-3" onSubmit={async e => {
+        e.preventDefault(); setBusy(true); setError(null);
+        try { const result = await faqsService.createCategory(newCategory.trim()); setNewCategory(""); await refresh(); setForm(f => ({ ...f, category: result.category.name })); }
+        catch (cause: any) { setError(cause.message || "Impossible de créer la catégorie."); }
+        finally { setBusy(false); }
+      }}>
+        <label className="flex-1">Nouvelle catégorie de FAQ<input required maxLength={120} disabled={busy} value={newCategory} onChange={e => setNewCategory(e.target.value)} className="block w-full mt-1 border rounded-lg px-3 py-2" /></label>
+        <button disabled={busy} className="px-4 py-2 rounded-lg bg-black text-white">Ajouter la catégorie</button>
+      </form>
       {/* Filters */}
       <div className="bg-white border rounded-xl p-4">
         <form onSubmit={onSubmitFilters} className="flex flex-col md:flex-row gap-3">
@@ -275,15 +277,11 @@ export default function AdminFaqsPage() {
             </Field>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Field label="Category">
-                <input
-                  value={form.category}
-                  onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
-                  className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-black/20"
-                  maxLength={100}
-                  placeholder="Example: Shipping"
-                  disabled={busy}
-                />
+              <Field label="Catégorie *">
+                <select required value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))} disabled={busy} className="w-full px-3 py-2 rounded-lg border">
+                  <option value="">Sélectionnez une catégorie</option>
+                  {categories.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
               </Field>
 
               <Field label="Display order">

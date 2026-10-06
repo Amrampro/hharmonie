@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ConsultationQuestionnaire, emptyConsultationForm } from "../components/ConsultationQuestionnaire";
 import { CalendarDays, Clock, Monitor, Phone, MapPin } from "lucide-react";
@@ -7,14 +8,13 @@ import { appointmentService, type AppointmentService, type AppointmentSlot } fro
 const typeIcon = { online: Monitor, physical: MapPin, phone: Phone, hybrid: CalendarDays };
 
 export function ConsultationPage() {
+  const navigate = useNavigate();
   const [services, setServices] = useState<AppointmentService[]>([]);
   const [slots, setSlots] = useState<AppointmentSlot[]>([]);
   const [selectedService, setSelectedService] = useState("");
   const [selectedSlot, setSelectedSlot] = useState("");
   const [loading, setLoading] = useState(true);
-  const [success, setSuccess] = useState("");
   const [checkoutUrl, setCheckoutUrl] = useState("");
-  const [checkingPayment, setCheckingPayment] = useState(false);
   const [error, setError] = useState("");
   const [form, setForm] = useState(emptyConsultationForm);
   const [documents, setDocuments] = useState<File[]>([]);
@@ -29,17 +29,7 @@ export function ConsultationPage() {
       try { setCheckoutUrl(sessionStorage.getItem("appointment_checkout_url") || ""); } catch { /* Storage is optional. */ }
     }
     if (!sessionId) return;
-    let cancelled = false;
-    setCheckingPayment(true);
-    appointmentService.paymentStatus(sessionId).then(result => {
-      if (cancelled) return;
-      if (result.payment_status === "paid") {
-        setSuccess(`Paiement reçu. Rendez-vous confirmé. Référence : ${result.appointment_number}`);
-        try { sessionStorage.removeItem("appointment_checkout_url"); } catch { /* Storage is optional. */ }
-      } else if (result.payment_status === "expired") setError("Ce paiement a expiré. Choisissez un nouveau créneau pour réserver.");
-      else { setError("Le paiement n’est pas encore confirmé. Vous pouvez reprendre le paiement ou actualiser cette page."); setCheckoutUrl(result.checkout_url || ""); }
-    }).catch(cause => { if (!cancelled) setError(cause.message); }).finally(() => { if (!cancelled) setCheckingPayment(false); });
-    return () => { cancelled = true; };
+    navigate(`/consultation/confirmation?session_id=${encodeURIComponent(sessionId)}`, { replace: true });
   }, []);
 
   useEffect(() => {
@@ -77,7 +67,6 @@ export function ConsultationPage() {
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (submissionPending.current) return;
-    setSuccess("");
     setError("");
     if (!selectedService || !availableSlots.some((slot) => slot.id === selectedSlot)) {
       setError("Choisissez un Consultation et un créneau.");
@@ -101,11 +90,8 @@ export function ConsultationPage() {
         window.location.assign(resp.checkout_url);
         return;
       }
-      setSuccess(`Rendez-vous confirmé. Référence : ${resp.appointment_number}`);
-      setSelectedSlot("");
-      setForm(emptyConsultationForm());
-      setDocuments([]);
-      setSlots((current) => current.filter((slot) => slot.id !== selectedSlot));
+      const confirmation = new URL(resp.confirmation_url, window.location.origin);
+      navigate(confirmation.pathname + confirmation.search);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Impossible d’enregistrer le rendez-vous.");
     } finally {
@@ -125,8 +111,6 @@ export function ConsultationPage() {
         </p>
       </div>
 
-      {checkingPayment && <p role="status">Vérification du paiement…</p>}
-      {success && <p role="status" className="hh-success">{success}</p>}
       {error && <p role="alert" className="hh-error">{error}</p>}
       {checkoutUrl && <p><a href={checkoutUrl} className="underline">Reprendre le paiement</a></p>}
       {loading ? (
@@ -185,7 +169,7 @@ export function ConsultationPage() {
             <ConsultationQuestionnaire form={form} setForm={setForm} documents={documents} setDocuments={setDocuments} onError={setError} />
             </fieldset>
             {selectedSlot && <p>{selectedPrice === 0 ? "Cette consultation est gratuite. Votre réservation sera confirmée immédiatement." : `Montant à payer : ${euros(selectedPrice)}. La réservation sera confirmée après paiement.`}</p>}
-            <Button type="submit" size="large" disabled={submitting || checkingPayment || !selectedSlot}>{submitting ? "Enregistrement…" : selectedSlot && selectedPrice > 0 ? `Payer ${euros(selectedPrice)} et réserver` : "Réserver gratuitement"}</Button>
+            <Button type="submit" size="large" disabled={submitting || !selectedSlot}>{submitting ? "Enregistrement…" : selectedSlot && selectedPrice > 0 ? `Payer ${euros(selectedPrice)} et réserver` : "Réserver gratuitement"}</Button>
           </form>
         </div>
       )}

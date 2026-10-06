@@ -1,3 +1,4 @@
+import { preparePagination } from "../src/utils/sqlPagination.js";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
@@ -22,10 +23,10 @@ test("appointment payments: additive migration, free, paid, expiry, retry and pa
     await connection.query("USE ??", [schema]);
     await connection.query("SET SESSION sql_mode = 'STRICT_ALL_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION'");
     const expected = readExpectedSchema();
-    const paymentFields = ["amount_cents", "payment_status", "stripe_session_id", "payment_expires_at"];
+    const paymentFields = ["platform_preference", "meeting_url", "confirmation_token", "confirmation_sent_at", "confirmation_send_started_at", "amount_cents", "payment_status", "stripe_session_id", "payment_expires_at"];
     for (const name of ["appointment_services", "appointment_slots", "appointments", "appointment_documents", "appointment_document_chunks"]) {
       let sql = expected.find(table => table.name === name).create;
-      if (name === "appointment_slots") sql = sql.split("\n").filter(line => !line.trimStart().startsWith("price ")).join("\n");
+      if (name === "appointment_slots") sql = sql.split("\n").filter(line => !line.trimStart().startsWith("price ") && !line.trimStart().startsWith("meeting_url ")).join("\n");
       if (name === "appointments") sql = sql.split("\n").filter(line => !paymentFields.some(field => line.trimStart().startsWith(`${field} `))).join("\n").replace(",'pending_payment','payment_expired'", "");
       await connection.query(sql);
     }
@@ -37,8 +38,16 @@ test("appointment payments: additive migration, free, paid, expiry, retry and pa
     assert.equal(Number((await connection.query("SELECT price FROM appointment_slots WHERE id='paid'"))[0][0].price), 65);
     assert.equal((await connection.query("SELECT payment_status FROM appointments WHERE appointment_number='OLD'"))[0][0].payment_status, null);
     await connection.query("UPDATE appointment_slots SET price=0 WHERE id='free'");
+    for (const name of ["faqs", "parameters"]) await connection.query(expected.find(table => table.name === name).create);
+    await connection.query("INSERT INTO faqs (question,answer,category) VALUES ('Old question','Old answer',NULL),('Delivery','Answer','Livraison')");
+    const confirmationMigration = await readFile(new URL("../migrations/20261006_consultation_confirmation_faq_categories.sql", import.meta.url), "utf8");
+    for (const sql of confirmationMigration.split(";").filter(s => s.trim())) await connection.query(sql);
+    assert.equal((await connection.query("SELECT category FROM faqs WHERE question='Old question'"))[0][0].category, "Général");
+    assert.equal((await connection.query("SELECT COUNT(*) AS n FROM faq_categories"))[0][0].n, 2);
+    await connection.query("INSERT INTO parameters (id,name,email) VALUES ('company','Entreprise test','contact@example.invalid')");
+    await connection.query("UPDATE appointment_slots SET meeting_url='https://meet.google.com/test' WHERE id IN ('free','paid')");
     const database = {
-      query: async (sql, params = []) => (await connection.execute(sql, params))[0],
+      query: async (sql, params = []) => { const prepared = preparePagination(sql, params); return (await connection.execute(prepared.sql, prepared.params))[0]; },
       getConnection: async () => ({ execute: connection.execute.bind(connection), beginTransaction: connection.beginTransaction.bind(connection), commit: connection.commit.bind(connection), rollback: connection.rollback.bind(connection), release() {}, destroy() {} }),
     };
     const sessions = new Map(); const calls = []; let fail = false;
@@ -53,14 +62,31 @@ test("appointment payments: additive migration, free, paid, expiry, retry and pa
         expire: async id => { sessions.get(id).status = "expired"; return sessions.get(id); },
       } };
     }
-    const environment = { STRIPE_SECRET_KEY: "sk_test_fake", CORS_ORIGIN: "https://site.example" };
-    const api = await loadController("appointmentsController", database, { stripe: { default: FakeStripe } }, environment);
-    const payments = await loadController("../services/appointmentPayments", database, { stripe: { default: FakeStripe } }, environment);
-    const body = { service_id: "service", slot_id: "free", first_name: "Camille", last_name: "Test", email: "test@example.com", phone: "", gender: "female", age: 32, baby_project: false, main_concern: "Question", consulted_professional: false, exams_description: "", has_diagnosis: false, diagnosis_details: "", consultation_reasons: ["lifestyle"], consultation_reason_other: "" };
+    const environment = { MAIL_FROM_EMAIL: "no-reply@example.invalid", STRIPE_SECRET_KEY: "sk_test_fake", CORS_ORIGIN: "https://site.example" };
+    const mails = []; let mailFails = false;
+    const mailStub = { mailer: { sendMail: async mail => { if (mailFails) throw new Error("SMTP unavailable"); mails.push(mail); } } };
+    const api = await loadController("appointmentsController", database, { stripe: { default: FakeStripe }, "mailer.js": mailStub }, environment);
+    const payments = await loadController("../services/appointmentPayments", database, { stripe: { default: FakeStripe }, "mailer.js": mailStub }, environment);
+    const confirmations = await loadController("../services/appointmentConfirmation", database, { "mailer.js": mailStub }, environment);
+    const body = { platform_preference: "zoom", service_id: "service", slot_id: "free", first_name: "Camille", last_name: "Test", email: "test@example.com", phone: "", gender: "female", age: 32, baby_project: false, main_concern: "Question", consulted_professional: false, exams_description: "", has_diagnosis: false, diagnosis_details: "", consultation_reasons: ["lifestyle"], consultation_reason_other: "" };
     const book = async (slot, extra = {}) => { const res = response(); await api.bookAppointment({ body: { ...body, slot_id: slot, ...extra }, files: [] }, res); return res; };
     const free = await book("free"); assert.equal(free.statusCode, 201, JSON.stringify(free.body)); assert.equal(free.body.checkout_url, null); assert.equal(free.body.payment_status, "free"); assert.equal(calls.length, 0);
+    assert.equal(mails.length, 1);
+    assert.match(mails[0].text, /Zoom/); assert.match(mails[0].text, /https:\/\/meet.google.com\/test/);
+    assert.match(mails[0].subject, /Entreprise test/);
+    assert.equal(mails[0].text.includes("Question"), false);
+    const freeToken = new URL(free.body.confirmation_url).searchParams.get("token");
+    const freeDetails = await confirmations.readConfirmation(freeToken);
+    assert.equal(freeDetails.platform_preference, "zoom"); assert.ok(freeDetails.confirmation_sent_at);
+    assert.equal(freeDetails.main_concern, undefined);
+    await assert.rejects(confirmations.readConfirmation("a".repeat(64)), { statusCode: 404 });
+    assert.equal((await book("failure", { platform_preference: "invalid" })).statusCode, 400);
     const paid = await book("paid", { price: 0, amount_cents: 0 }); assert.equal(paid.statusCode, 201, JSON.stringify(paid.body)); assert.equal(paid.body.payment_status, "pending"); assert.equal(calls[0].line_items[0].price_data.unit_amount, 6500);
     assert.equal(calls[0].line_items[0].price_data.currency, "eur"); assert.equal(calls[0].metadata.main_concern, undefined);
+    assert.match(calls[0].success_url, /^https:\/\/site.example\/consultation\/confirmation\?session_id=/);
+    const paidToken = new URL(paid.body.confirmation_url).searchParams.get("token");
+    assert.equal((await confirmations.readConfirmation(paidToken)).meeting_url, undefined);
+    assert.equal(mails.length, 1);
     assert.equal((await book("paid")).statusCode, 409);
     const modify = response(); await api.adminUpdateSlot({ params: { id: "paid" }, body: { price: 0, status: "available" } }, modify); assert.equal(modify.statusCode, 409);
     const session = sessions.get("cs_test_1");
@@ -68,7 +94,13 @@ test("appointment payments: additive migration, free, paid, expiry, retry and pa
     let saved = (await database.query("SELECT * FROM appointments WHERE slot_id='paid'"))[0]; assert.equal(saved.status, "pending_payment");
     await assert.rejects(payments.reconcileAppointmentPayment({ ...session, amount_total: 1, payment_status: "paid" }));
     session.payment_status = "paid"; session.status = "complete";
+    mailFails = true;
+    await assert.rejects(payments.reconcileAppointmentPayment(session));
+    assert.equal((await payments.getAppointmentPayment(session.id)).payment_status, "paid");
+    mailFails = false;
     await payments.reconcileAppointmentPayment(session); await payments.reconcileAppointmentPayment(session);
+    assert.equal(mails.length, 2);
+    assert.equal((await confirmations.readConfirmation(paidToken)).service_name, "Consultation");
     saved = (await database.query("SELECT * FROM appointments WHERE slot_id='paid'"))[0]; assert.equal(saved.status, "confirmed"); assert.equal(saved.payment_status, "paid");
     assert.equal((await payments.getAppointmentPayment(session.id)).payment_status, "paid");
     await book("expired"); const expired = sessions.get("cs_test_2"); expired.status = "expired";
@@ -78,6 +110,14 @@ test("appointment payments: additive migration, free, paid, expiry, retry and pa
     assert.equal((await book("expired")).statusCode, 201);
     await payments.reconcileAppointmentPayment(expired); // Late duplicate must not release a newer hold.
     assert.equal((await database.query("SELECT status FROM appointment_slots WHERE id='expired'"))[0].status, "booked");
+    const faqApi = await loadController("faqsController", database);
+    const categoryRes = response(); await faqApi.createCategory({ body: { name: "Consultations" } }, categoryRes); assert.equal(categoryRes.statusCode, 201);
+    const faqRes = response(); await faqApi.createFaq({ body: { question: "Comment réserver ?", answer: "Choisissez un créneau", category: "Consultations" } }, faqRes); assert.equal(faqRes.statusCode, 201, JSON.stringify(faqRes.body));
+    const invalidFaq = response(); await faqApi.updateFaq({ params: { id: faqRes.body.faq.id }, body: { category: "Inconnue" } }, invalidFaq); assert.equal(invalidFaq.statusCode, 400);
+    const list = response(); await faqApi.getCategories({}, list); assert.equal(list.body.categories.length, 3);
+    const filtered = response(); await faqApi.getFaqs({ query: { category: "Consultations" } }, filtered);
+    assert.equal(filtered.body.faqs.length, 1); assert.equal(filtered.body.faqs[0].question, "Comment réserver ?");
+    const allFaqs = response(); await faqApi.getFaqs({ query: {} }, allFaqs); assert.equal(allFaqs.body.faqs.length, 3);
     fail = true; assert.equal((await book("failure")).statusCode, 500);
     assert.equal((await database.query("SELECT status FROM appointment_slots WHERE id='failure'"))[0].status, "available");
     assert.equal((await database.query("SELECT COUNT(*) AS total FROM appointments WHERE slot_id='failure'"))[0].total, 0);

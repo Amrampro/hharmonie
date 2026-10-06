@@ -1,3 +1,4 @@
+import { ConsultationConfirmationPage } from "./pages/ConsultationConfirmationPage";
 import AdminContentPage from "./pages/admin/AdminContentPage";
 import { CollaboratorsPage } from "./pages/CollaboratorsPage";
 // client/src/App.tsx
@@ -73,6 +74,7 @@ function App() {
               <Route path="/blog/:slug" element={<BlogDetailRoute />} />
               <Route path="/events" element={<EventsPage />} />
               <Route path="/events/:slug" element={<EventDetailPage />} />
+              <Route path="/consultation/confirmation" element={<ConsultationConfirmationPage />} />
               <Route path="/consultation" element={<ConsultationPage />} />
               <Route path="/contact" element={<ContactPage />} />
               <Route path="/collaborators" element={<CollaboratorsPage />} />

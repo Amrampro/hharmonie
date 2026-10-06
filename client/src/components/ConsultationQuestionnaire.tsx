@@ -1,7 +1,8 @@
 import type { Dispatch, SetStateAction } from "react";
-import { consultationReasonLabels } from "../services/appointmentService";
+import { consultationReasonLabels, platformLabels } from "../services/appointmentService";
 
 export const emptyConsultationForm = () => ({
+  platform_preference: "default",
   first_name: "", last_name: "", email: "", phone: "",
   gender: "", age: "", baby_project: "", main_concern: "", consulted_professional: "",
   exams_description: "", has_diagnosis: "", diagnosis_details: "",
@@ -68,6 +69,12 @@ export function ConsultationQuestionnaire({ form, setForm, documents, setDocumen
         }))} />{label}
       </label>)}</div>
       {form.consultation_reasons.includes("other") && <label className="consultation-question">Précisez votre autre motif *<textarea required rows={3} maxLength={2000} value={form.consultation_reason_other} onChange={(e) => change("consultation_reason_other", e.target.value)} /></label>}
+    </fieldset>
+    <fieldset><legend>9. Quelle plateforme souhaitez-vous utiliser pour votre consultation ?</legend>
+      <p>Si un lien de réunion est prévu pour ce créneau, vous pouvez le conserver ou indiquer une autre plateforme. Votre préférence sera transmise à notre équipe.</p>
+      <div className="consultation-choices">{Object.entries(platformLabels).map(([value, label]) => <label key={value}>
+        <input type="radio" name="platform_preference" value={value} checked={form.platform_preference === value} onChange={() => change("platform_preference", value)} />{label}
+      </label>)}</div>
     </fieldset>
   </div>;
 }

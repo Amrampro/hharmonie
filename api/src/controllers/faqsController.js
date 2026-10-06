@@ -11,7 +11,7 @@ const normalizeCategory = (s) =>
   String(s ?? "")
     .trim()
     .replace(/\s+/g, " ")
-    .slice(0, 100);
+    .slice(0, 120);
 
 // GET /api/v1/faqs?category=...&search=...&limit=...&offset=...
 export const getFaqs = async (req, res) => {
@@ -75,6 +75,8 @@ export const createFaq = async (req, res) => {
     if (!question?.trim()) return res.status(400).json({ error: "question is required" });
     if (!answer?.trim()) return res.status(400).json({ error: "answer is required" });
 
+    const categoryName = await validCategory(category);
+
     // Historical installations use UUIDs; schema.sql uses an AUTO_INCREMENT id.
     const [idColumn] = await query("SHOW COLUMNS FROM faqs LIKE 'id'");
     const autoId = String(idColumn?.Extra).includes("auto_increment");
@@ -89,7 +91,7 @@ export const createFaq = async (req, res) => {
         id,
         String(question).trim().slice(0, 500),
         String(answer).trim(),
-        category ? normalizeCategory(category) : null,
+        categoryName,
         toInt(display_order, 0),
       ]
     );
@@ -129,7 +131,7 @@ export const updateFaq = async (req, res) => {
 
     if (category !== undefined) {
       patch.push("category = ?");
-      params.push(category ? normalizeCategory(category) : null);
+      params.push(await validCategory(category));
     }
 
     if (display_order !== undefined) {
@@ -164,3 +166,23 @@ export const deleteFaq = async (req, res) => {
     sendApiError(res, error);
   }
 };
+
+export const getCategories = async (_req, res) => {
+  try { res.json({ categories: await query("SELECT name FROM faq_categories ORDER BY name ASC") }); }
+  catch (error) { sendApiError(res, error); }
+};
+export const createCategory = async (req, res) => {
+  try {
+    const name = req.body?.name;
+    if (typeof name !== "string" || !name.trim() || name.trim().length > 120) return res.status(400).json({ error: "Indiquez un nom de catégorie (120 caractères maximum)." });
+    const category = normalizeCategory(name);
+    await query("INSERT INTO faq_categories (name) VALUES (?)", [category]);
+    res.status(201).json({ category: { name: category } });
+  } catch (error) { sendApiError(res, error); }
+};
+async function validCategory(value) {
+  const name = normalizeCategory(value || "Général");
+  const [found] = await query("SELECT name FROM faq_categories WHERE name = ?", [name]);
+  if (!found) throw Object.assign(new Error("Sélectionnez une catégorie existante ou créez-la d’abord."), { statusCode: 400 });
+  return found.name;
+}

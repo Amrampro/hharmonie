@@ -1,11 +1,12 @@
 // client/src/pages/FAQPage.tsx
 import { useEffect, useMemo, useState } from "react";
-import { ChevronDown, ChevronUp, HelpCircle, Search } from "lucide-react";
+import { ChevronDown, ChevronUp, Search } from "lucide-react";
 import { theme } from "../config/theme";
 import { faqsService, type Faq } from "../services/faqsService";
 import { PageBanner } from "../components/PageBanner";
 
 export function FAQPage() {
+  const [categories, setCategories] = useState<string[]>([]);
   const [faqs, setFaqs] = useState<Faq[]>([]);
   const [openIndex, setOpenIndex] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
@@ -13,7 +14,7 @@ export function FAQPage() {
 
   // optionnel: petit champ de recherche côté client
   const [query, setQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [selectedCategory, setSelectedCategory] = useState<string>("");
 
   useEffect(() => {
     void fetchFAQs();
@@ -37,6 +38,7 @@ export function FAQPage() {
         return String(a.question || "").localeCompare(String(b.question || ""));
       });
 
+      setCategories((await faqsService.listCategories()).categories.map(c => c.name));
       setFaqs(sorted);
       setOpenIndex(sorted.length > 0 ? 0 : null);
     } catch (e: any) {
@@ -53,20 +55,12 @@ export function FAQPage() {
     setOpenIndex((prev) => (prev === index ? null : index));
   };
 
-  const categories = useMemo(() => {
-    const set = new Set<string>();
-    faqs.forEach((f) => {
-      if (f.category) set.add(f.category);
-    });
-    return Array.from(set).sort((a, b) => a.localeCompare(b));
-  }, [faqs]);
-
   const filteredFaqs = useMemo(() => {
     const q = query.trim().toLowerCase();
 
     return faqs.filter((f) => {
       const inCategory =
-        selectedCategory === "all"
+        selectedCategory === ""
           ? true
           : (f.category || "") === selectedCategory;
 
@@ -123,11 +117,12 @@ export function FAQPage() {
                 }}
               >
 
-                {categories.map((c) => (
+                {["", ...categories].map((c) => (
                   <button
                     key={c}
                     type="button"
-                    onClick={() => setSelectedCategory(c)}
+                    aria-pressed={selectedCategory === c}
+                    onClick={() => { setSelectedCategory(c); setOpenIndex(null); }}
                     style={{
                       border: `1px solid ${
                         selectedCategory === c
@@ -150,7 +145,7 @@ export function FAQPage() {
                       transition: theme.transition.fast,
                     }}
                   >
-                    {c}
+                    {c === "" ? "Toutes les catégories" : c}
                   </button>
                 ))}
               </div>
@@ -175,7 +170,8 @@ export function FAQPage() {
                 />
                 <input
                   value={query}
-                  onChange={(e) => setQuery(e.target.value)}
+                  aria-label="Rechercher une question"
+                  onChange={(e) => { setQuery(e.target.value); setOpenIndex(null); }}
                   placeholder="Rechercher une question..."
                   style={{
                     width: "100%",

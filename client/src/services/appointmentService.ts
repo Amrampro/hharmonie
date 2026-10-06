@@ -14,6 +14,7 @@ export type AppointmentService = {
 };
 
 export type AppointmentSlot = {
+  meeting_url: string | null;
   price: number;
   id: string;
   service_id: string;
@@ -25,6 +26,8 @@ export type AppointmentSlot = {
 };
 
 export type Appointment = {
+  platform_preference: string;
+  meeting_url: string | null;
   amount_cents: number | null;
   payment_status: "free" | "pending" | "paid" | "expired" | null;
   id: string;
@@ -62,7 +65,11 @@ export const consultationReasonLabels: Record<string, string> = {
   other: "Autre",
 };
 
+export const platformLabels: Record<string, string> = { default: "Maintenir le lien par défaut", whatsapp: "WhatsApp", google_meet: "Google Meet", zoom: "Zoom" };
+export const meetingTypeLabels: Record<string, string> = { online: "En ligne", physical: "Présentiel", phone: "Téléphone", hybrid: "Hybride" };
+export type AppointmentConfirmation = Pick<Appointment, "appointment_number" | "first_name" | "last_name" | "email" | "phone" | "status" | "payment_status" | "amount_cents" | "platform_preference" | "meeting_url" | "service_name" | "available_date" | "start_time" | "end_time"> & { short_description: string | null; description: string | null; duration_minutes: number; meeting_type: string; confirmation_sent_at: string | null };
 export type ConsultationPayload = {
+  platform_preference: string;
   service_id: string; slot_id: string; first_name: string; last_name: string; email: string; phone: string;
   gender: string; age: number; baby_project: boolean; main_concern: string;
   consulted_professional: boolean; exams_description: string; has_diagnosis: boolean;
@@ -88,7 +95,7 @@ export const appointmentService = {
     return http<{ slots: AppointmentSlot[] }>(`${apiEndpoints.appointments.slots}${qs(params)}`, { auth: false });
   },
 
-  async book(payload: ConsultationPayload, documents: File[] = []): Promise<{ appointment_number: string; checkout_url: string | null; payment_status: string }> {
+  async book(payload: ConsultationPayload, documents: File[] = []): Promise<{ confirmation_url: string; appointment_number: string; checkout_url: string | null; payment_status: string }> {
     const body = new FormData();
     body.append("data", JSON.stringify(payload));
     documents.forEach((file) => body.append("documents", file));
@@ -102,7 +109,11 @@ export const appointmentService = {
   },
 
   paymentStatus(sessionId: string) {
-    return http<{ appointment_number: string; status: string; payment_status: string; checkout_url: string | null }>(`${apiEndpoints.appointments.book.replace(/\/book$/, "")}/payment/${encodeURIComponent(sessionId)}`, { auth: false });
+    return http<{ confirmation_url: string | null; appointment_number: string; status: string; payment_status: string; checkout_url: string | null }>(`${apiEndpoints.appointments.book.replace(/\/book$/, "")}/payment/${encodeURIComponent(sessionId)}`, { auth: false });
+  },
+
+  confirmation(token: string) {
+    return http<{ appointment: AppointmentConfirmation }>(`${apiEndpoints.appointments.book.replace(/\/book$/, "")}/confirmation/${encodeURIComponent(token)}`, { auth: false });
   },
 
   async adminDownloadDocument(document: AppointmentDocument) {
@@ -136,6 +147,7 @@ export const appointmentService = {
   },
 
   adminCreateSlot(payload: {
+    meeting_url?: string;
     service_id: string;
     available_date: string;
     start_time: string;

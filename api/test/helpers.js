@@ -22,10 +22,10 @@ export async function loadController(name, database, overrides = {}, environment
       module = new vm.SourceTextModule(await readFile(new URL(url), "utf8"), { context, identifier: url });
     }
     cache.set(url, module);
-    await module.link((specifier, parent) => load(specifier.startsWith(".") ? new URL(specifier, parent.identifier).href : specifier));
     return module;
   }
   const module = await load(new URL(`../src/controllers/${name}.js`, import.meta.url).href);
+  await module.link((specifier, parent) => load(specifier.startsWith(".") ? new URL(specifier, parent.identifier).href : specifier));
   await module.evaluate();
   return module.namespace;
 }

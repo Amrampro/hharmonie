@@ -7,10 +7,12 @@ const router = Router();
 
 // Public
 router.get("/", FaqsController.getFaqs);
+router.get("/categories", FaqsController.getCategories);
 router.get("/:id", FaqsController.getFaqById);
 
 // Admin (protect if you want)
 router.use(authenticateToken, requireAdmin);
+router.post("/admin/categories", FaqsController.createCategory);
 router.post("/admin", FaqsController.createFaq);
 router.put("/admin/:id", FaqsController.updateFaq);
 router.delete("/admin/:id", FaqsController.deleteFaq);

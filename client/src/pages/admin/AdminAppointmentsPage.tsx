@@ -2,7 +2,7 @@ import { useAdminAction } from "../../hooks/useAdminAction";
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { CalendarDays, Plus, Trash2 } from "lucide-react";
-import { appointmentService, consultationReasonLabels, type Appointment, type AppointmentService, type AppointmentSlot } from "../../services/appointmentService";
+import { appointmentService, consultationReasonLabels, platformLabels, type Appointment, type AppointmentService, type AppointmentSlot } from "../../services/appointmentService";
 
 const yesNo = (value: boolean | number | null) => value == null ? "Non renseigné" : value === true || value === 1 ? "Oui" : "Non";
 
@@ -11,9 +11,10 @@ export default function AdminAppointmentsPage() {
   const [services, setServices] = useState<AppointmentService[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [slots, setSlots] = useState<AppointmentSlot[]>([]);
+  const [slotLinks, setSlotLinks] = useState<Record<string, string>>({});
   const [slotPrices, setSlotPrices] = useState<Record<string, string>>({});
   const [serviceForm, setServiceForm] = useState({ name: "", short_description: "", duration_minutes: 60, price: 65, meeting_type: "online" });
-  const [slotForm, setSlotForm] = useState({ service_id: "", available_date: "", start_time: "09:00", end_time: "10:00", status: "available", price: 0 });
+  const [slotForm, setSlotForm] = useState({ service_id: "", available_date: "", start_time: "09:00", end_time: "10:00", status: "available", price: 0, meeting_url: "" });
 
   const load = async () => {
     const [serviceResp, appointmentResp, slotResp] = await Promise.all([
@@ -25,6 +26,7 @@ export default function AdminAppointmentsPage() {
     setServices(loadedServices);
     setAppointments(appointmentResp.appointments || []);
     setSlots(slotResp.slots || []);
+    setSlotLinks(Object.fromEntries((slotResp.slots || []).map(slot => [slot.id, slot.meeting_url || ""])));
     setSlotPrices(Object.fromEntries((slotResp.slots || []).map(slot => [slot.id, String(slot.price)])));
     setSlotForm((current) => ({ ...current, service_id: current.service_id || loadedServices[0]?.id || "" }));
   };
@@ -100,6 +102,7 @@ export default function AdminAppointmentsPage() {
               <input required type="time" value={slotForm.start_time} onChange={(e) => setSlotForm({ ...slotForm, start_time: e.target.value })} />
               <input required type="time" value={slotForm.end_time} onChange={(e) => setSlotForm({ ...slotForm, end_time: e.target.value })} />
             </div>
+            <label>Lien de réunion par défaut<input type="url" maxLength={1000} placeholder="https://meet.google.com/..." value={slotForm.meeting_url} onChange={e => setSlotForm({ ...slotForm, meeting_url: e.target.value })} className="block w-full border rounded-lg px-3 py-2" /></label>
             <label>Prix du créneau (€) — 0 pour une consultation gratuite<input required type="number" min="0" max="999999.99" step="0.01" value={slotForm.price} onChange={e => setSlotForm({ ...slotForm, price: Number(e.target.value) })} /></label>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#A47788] px-4 py-3 font-semibold text-white">
               <CalendarDays size={18} /> Créer le créneau
@@ -117,6 +120,7 @@ export default function AdminAppointmentsPage() {
               <span>{new Date(slot.available_date).toLocaleDateString("fr-FR")}</span>
               <span>{slot.start_time.slice(0, 5)} - {slot.end_time.slice(0, 5)} | {slot.status}</span>
               <div className="flex items-center gap-2 flex-wrap"><label>Prix (€)<input aria-label={`Prix du créneau ${slot.start_time}`} className="w-28" type="number" min="0" step="0.01" disabled={busy || slot.status === "booked"} value={slotPrices[slot.id] ?? ""} onChange={e => setSlotPrices(current => ({ ...current, [slot.id]: e.target.value }))} /></label><button disabled={busy || slot.status === "booked" || !slotPrices[slot.id]} type="button" onClick={() => run(async () => { await appointmentService.adminUpdateSlot(slot.id, { price: Number(slotPrices[slot.id]) }); await load(); })}>Enregistrer le prix</button></div>
+              <div className="flex flex-wrap gap-2 md:col-span-3"><label className="flex-1">Lien de réunion<input type="url" maxLength={1000} className="block w-full border rounded-lg px-3 py-2" disabled={busy || slot.status === "booked"} value={slotLinks[slot.id] || ""} onChange={e => setSlotLinks(current => ({ ...current, [slot.id]: e.target.value }))} /></label><button type="button" disabled={busy || slot.status === "booked"} onClick={() => run(async () => { await appointmentService.adminUpdateSlot(slot.id, { meeting_url: slotLinks[slot.id] || null }); await load(); })}>Enregistrer le lien</button></div>
               <button disabled={busy || slot.status === "booked"} type="button" onClick={() => deleteSlot(slot.id)} className="inline-flex items-center justify-center rounded-lg border p-2 text-red-600">
                 <Trash2 size={17} />
               </button>
@@ -139,6 +143,8 @@ export default function AdminAppointmentsPage() {
                 {[
                   ["Montant", appointment.amount_cents == null ? "Ancienne réservation" : (appointment.amount_cents / 100).toLocaleString("fr-FR", { style: "currency", currency: "EUR" })],
                   ["Paiement", ({ free: "Gratuit", pending: "En attente de paiement", paid: "Payé", expired: "Paiement expiré" } as Record<string, string>)[appointment.payment_status || ""] || "Ancienne réservation"],
+                  ["Plateforme souhaitée", platformLabels[appointment.platform_preference] || "Maintenir le lien par défaut"],
+                  ["Lien de réunion prévu", appointment.meeting_url],
                   ["E-mail", appointment.email], ["Téléphone", appointment.phone],
                   ["1. Vous êtes", appointment.gender === "female" ? "Femme" : appointment.gender === "male" ? "Homme" : null],
                   ["2. Âge", appointment.age == null ? null : `${appointment.age} ans`],
