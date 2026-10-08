@@ -5,7 +5,6 @@ import { reconcileOrderPayment } from "./orderPayment.service.js";
 import crypto from "node:crypto";
 import Stripe from "stripe";
 import { getConnection, query } from "../config/database.js";
-import { findActiveAmbassadorByCode, computeCommissionForOrderSnapshot } from "./ambassadors/ambassadors.service.js";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: "2024-06-20",
@@ -105,7 +104,6 @@ export async function createCheckout({
   userId,
   cart_items,
   coupon_code,
-  ambassador_code,
   shipping,
 }) {
   if (!Array.isArray(cart_items) || cart_items.length === 0)
@@ -147,12 +145,6 @@ export async function createCheckout({
 
       const shipping_amount = Math.max(0, toInt(shipping?.amount, 0));
 
-    // ✅ ambassador lookup + commission snapshot
-    const ambassador = ambassador_code ? await findActiveAmbassadorByCode(ambassador_code) : null;
-    const ambassadorCommissionAmount = ambassador
-      ? computeCommissionForOrderSnapshot(ambassador, subtotal_amount)
-      : 0;
-
     // 3) total
     const total_amount = Math.max(
       0,
@@ -181,7 +173,6 @@ export async function createCheckout({
         (id, user_id, status, currency,
          subtotal_amount, discount_amount, shipping_amount, total_amount,
          coupon_code,
-         ambassador_id, ambassador_code, ambassador_commission_amount, ambassador_commission_currency,
          shipping_method, shipping_status,
          shipping_tracking_number, shipping_tracking_url,
          created_at, updated_at)
@@ -189,7 +180,6 @@ export async function createCheckout({
         (?, ?, 'pending_payment', ?,
          ?, ?, ?, ?,
          ?,
-         ?, ?, ?, 'EUR',
          ?, 'not_set',
          NULL, NULL,
          NOW(), NOW())
@@ -203,9 +193,6 @@ export async function createCheckout({
         shipping_amount,
         total_amount,
         finalCouponCode,
-        ambassador?.id ?? null,
-        ambassador?.code ?? null,
-        ambassadorCommissionAmount,
         shipping.method,
       ],
     );
@@ -387,9 +374,6 @@ export async function createCheckout({
         currency: "EUR",
         status: "pending_payment",
         coupon_code: finalCouponCode,
-        ambassador: ambassador
-          ? { id: ambassador.id, code: ambassador.code, commission_amount: ambassadorCommissionAmount }
-          : null,
       },
       stripe: {
         session_id: session.id,

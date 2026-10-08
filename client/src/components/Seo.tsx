@@ -65,11 +65,6 @@ const indexablePages: Record<string, SeoMeta> = {
     description:
       "Découvrez les avantages fidélité H&H pour vos commandes de produits naturels.",
   },
-  "/ambassadors": {
-    title: "Ambassadeurs | Hormone & Harmonie",
-    description:
-      "Rejoignez le programme ambassadeur H&H et accompagnez la communauté autour du bien-être hormonal naturel.",
-  },
 };
 
 function normalizePath(pathname: string) {

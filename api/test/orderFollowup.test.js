@@ -81,9 +81,41 @@ test("order confirmation, private tracking, SMTP retry and additive migration", 
     const fromStripe = await orders.getOrderForUser({ sessionId: "cs_test_order" }); assert.equal(fromStripe.order.status, "paid");
     await connection.query("UPDATE orders SET status='shipped' WHERE id='order'");
     await payments.reconcileOrderPayment(session); assert.equal((await database.query("SELECT status FROM orders WHERE id='order'"))[0].status, "shipped"); assert.equal(emails.length, 1);
+    const admin = await loadController("admin/ordersController", database, overrides, environment);
+    const changed = response(); await admin.updateOrderStatus({ params: { id: "order" }, body: { status: "delivered" } }, changed);
+    assert.equal(changed.statusCode, 200); assert.equal(changed.body.email_sent, true); assert.equal(emails.length, 2);
+    const notification = emails[1];
+    assert.equal(notification.to, "client@example.com"); assert.equal(notification.from.address, "sender@example.com");
+    for (const text of ["Harmonie Test", "Produit test", "Sous-total", "Total", "Adresse test", "Avant : Expédiée", "Livrée", "/follow-order?"]) assert.ok(notification.html.includes(text), text);
+    assert.ok(!notification.html.includes("NOVEDEN")); assert.ok(!notification.html.includes("Votre paiement est confirmé"));
+    const unchanged = response(); await admin.updateOrderStatus({ params: { id: "order" }, body: { status: "delivered" } }, unchanged); assert.equal(emails.length, 2);
+    const shipping = response(); await admin.updateOrderShipping({ params: { id: "order" }, body: { shipping_tracking_number: "TRACK123", shipping_status: "in_transit" } }, shipping);
+    assert.equal(shipping.body.email_sent, true); assert.match(emails[2].html, /TRACK123/);
+    smtpFail = true;
+    const failedMail = response(); await admin.updateOrderStatus({ params: { id: "order" }, body: { status: "refunded" } }, failedMail);
+    assert.equal(failedMail.statusCode, 200); assert.ok(failedMail.body.email_warning); assert.equal(failedMail.body.order.status, "refunded");
   } finally {
     await connection.query("USE ??", [original]);
     if (created) await connection.query("DROP DATABASE ??", [schema]);
     connection.release(); await pool.end();
   }
+});
+
+
+test("checkout ignores retired ambassador codes and creates no commissions", async () => {
+  const writes = [];
+  const connection = {
+    beginTransaction: async () => {}, commit: async () => {}, rollback: async () => {}, release() {},
+    execute: async (sql, params) => {
+      if (sql.includes("FROM products")) return [[{ id: "product", name: "Produit", price: 25 }]];
+      if (sql.includes("paid_count")) return [[{ paid_count: 1 }]];
+      writes.push({ sql, params }); return [{ affectedRows: 1 }];
+    },
+  };
+  class FakeStripe { checkout = { sessions: { create: async () => ({ id: "cs_fake", url: "https://checkout.stripe.com/fake" }) } }; }
+  const api = await loadController("../services/orders.service", { getConnection: async () => connection, query: async () => { throw new Error("Unexpected lookup"); } }, { stripe: { default: FakeStripe } }, { STRIPE_SECRET_KEY: "fake" });
+  const result = await api.createCheckout({ userId: 1, ambassador_code: "RETIRED", cart_items: [{ product_id: "product", quantity: 1 }], shipping: { method: "home_delivery", amount: 0, address: { full_name: "Client", email: "client@example.invalid", phone: "123", city: "Bruxelles", postal_code: "1000", address1: "Rue test" } } });
+  assert.equal(result.order.total_amount, 2500); assert.equal(result.order.ambassador, undefined);
+  assert.ok(writes.every(write => !/ambassador|commission/i.test(write.sql)));
+  for (const { sql, params } of writes) assert.equal((sql.match(/\?/g) || []).length, params.length);
 });

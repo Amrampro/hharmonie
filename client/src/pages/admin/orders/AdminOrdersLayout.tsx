@@ -123,11 +123,12 @@ export default function AdminOrdersLayout() {
     if (!selectedId) return;
     setError(null);
     try {
-      const { order: updated } = await adminOrderService.updateOrderStatus(selectedId, {
+      const { order: updated, email_warning } = await adminOrderService.updateOrderStatus(selectedId, {
         status: newStatus,
       });
 
       setSelectedOrder(updated);
+      if (email_warning) setError(email_warning);
       setOrders((prev) =>
         prev.map((o) => (o.id === updated.id ? { ...o, status: updated.status } : o))
       );
@@ -145,9 +146,10 @@ export default function AdminOrdersLayout() {
     if (!selectedId) return;
     setError(null);
     try {
-      const { order: updated } = await adminOrderService.updateOrderShipping(selectedId, payload);
+      const { order: updated, email_warning } = await adminOrderService.updateOrderShipping(selectedId, payload);
 
       setSelectedOrder(updated);
+      if (email_warning) setError(email_warning);
       setOrders((prev) =>
         prev.map((o) =>
           o.id === updated.id

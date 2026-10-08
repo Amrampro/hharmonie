@@ -146,9 +146,6 @@ export function AccountPage() {
           </div>
 
           <div style={{ display: "flex", gap: theme.spacing.sm, flexWrap: "wrap" }}>
-            <Button variant="outline" onClick={() => navigate("/ambassador/account")}>
-              Paramètres du compte ambassadeur
-            </Button>
             <Button variant="outline" onClick={() => navigate("/")}>
               Retour à l’accueil
             </Button>

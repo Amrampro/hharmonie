@@ -42,11 +42,7 @@ import AdminNewsletterList from "./pages/admin/AdminNewsletterList";
 import AdminAppointmentsPage from "./pages/admin/AdminAppointmentsPage";
 import AdminEventsPage from "./pages/admin/AdminEventsPage";
 import OrderSuccessPage from "./pages/OrderSuccessPage";
-import { AdminAmbassadorsPage } from "./pages/admin/AdminAmbassadorsPage";
-import { AmbassadorDashboardPage } from "./pages/AmbassadorDashboardPage";
 import { FidelitePage } from "./pages/FidelitePage";
-import { AmbassadorsPage } from "./pages/AmbassadorsPage";
-import { AmbassadorPage } from "./pages/AmbassadorPage";
 
 import PublicLayout from "./layouts/PublicLayout";
 import { SiteParamsProvider } from "./contexts/SiteParamsContext";
@@ -85,7 +81,6 @@ function App() {
               <Route path="/fidelity" element={<FidelitePage />} />
               <Route path="/order-success" element={<OrderSuccessPage />} />
               <Route path="/follow-order" element={<OrderSuccessPage tracking />} />
-              <Route path="/ambassadors" element={<AmbassadorsPage />} />
             </Route>
 
             {/* Auth */}
@@ -93,8 +88,6 @@ function App() {
             <Route path="/signup" element={<SignupPage />} />
 
             <Route path="/account" element={<AccountPage />} />            
-            <Route path="/ambassador" element={<AmbassadorDashboardPage />} />
-            <Route path="/ambassador/account" element={<AmbassadorPage />} />
 
             {/* ✅ Admin protected */}
             <Route
@@ -176,7 +169,6 @@ function App() {
               {/* Newsletter */}
               <Route path="newsletter" element={<AdminNewsletterList />} />
 
-              <Route path="ambassadors" element={<AdminAmbassadorsPage />} />
               <Route path="appointments" element={<AdminAppointmentsPage />} />
               <Route path="events" element={<AdminEventsPage />} />
             </Route>

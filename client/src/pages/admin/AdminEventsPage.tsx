@@ -1,3 +1,4 @@
+import { parameterService } from "../../services/parameterService";
 import { useAdminAction } from "../../hooks/useAdminAction";
 import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
@@ -114,7 +115,21 @@ export default function AdminEventsPage() {
           <label className="block text-sm font-medium text-slate-700">Titre *<input className="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 font-normal focus:outline-none focus:ring-2 focus:ring-[#A47788]" required placeholder="Titre" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} /></label>
           <label className="block text-sm font-medium text-slate-700">Résumé<input className="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 font-normal focus:outline-none focus:ring-2 focus:ring-[#A47788]" placeholder="Résumé" value={form.short_description} onChange={(e) => setForm({ ...form, short_description: e.target.value })} /></label>
           <label className="block text-sm font-medium text-slate-700">Description<textarea className="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 font-normal focus:outline-none focus:ring-2 focus:ring-[#A47788]" rows={5} placeholder="Description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></label>
-          <label className="block text-sm font-medium text-slate-700">URL de l’image<input className="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 font-normal focus:outline-none focus:ring-2 focus:ring-[#A47788]" placeholder="URL image" value={form.cover_image_url} onChange={(e) => setForm({ ...form, cover_image_url: e.target.value })} /></label>
+          <div className="space-y-3">
+            <label className="block text-sm font-medium text-slate-700">Visuel de l’événement
+              <input type="file" accept="image/jpeg,image/png,image/webp" className="mt-2 block w-full" onChange={e => {
+                const file = e.target.files?.[0]; e.target.value = "";
+                if (!file) return;
+                void run(async () => {
+                  if (!["image/jpeg", "image/png", "image/webp"].includes(file.type) || file.size > 5 * 1024 * 1024 || !file.size) throw new Error("Choisissez une image JPG, PNG ou WebP de 5 Mo maximum.");
+                  const { url } = await parameterService.uploadProductImage(file);
+                  setForm(current => ({ ...current, cover_image_url: url }));
+                });
+              }} />
+            </label>
+            <p className="text-sm text-slate-500">JPG, PNG ou WebP · 5 Mo maximum. Enregistrez l’événement pour publier le visuel.</p>
+            {form.cover_image_url && <div className="flex flex-wrap items-center gap-3"><img src={form.cover_image_url} alt="Aperçu du visuel de l’événement" className="max-h-48 max-w-full rounded-lg object-contain" /><button type="button" className="rounded-lg border px-3 py-2" onClick={() => setForm(current => ({ ...current, cover_image_url: "" }))}>Retirer l’image</button></div>}
+          </div>
           <div className="grid gap-3 md:grid-cols-4">
             <label className="block text-sm font-medium text-slate-700">Format<select className="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 font-normal" value={form.event_type} onChange={(e) => setForm({ ...form, event_type: e.target.value })}>
               <option value="physical">Présentiel</option>

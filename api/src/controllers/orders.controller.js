@@ -5,13 +5,12 @@ import { createCheckout, getOrderForUser } from "../services/orders.service.js";
 export async function checkout(req, res) {
   try {
     const userId = 0; // guest
-    const { cart_items, coupon_code, shipping, ambassador_code } = req.body || {};
+    const { cart_items, coupon_code, shipping } = req.body || {};
 
     const data = await createCheckout({
       userId,
       cart_items,
       coupon_code,
-      ambassador_code,
       shipping,
     });
 

@@ -65,7 +65,7 @@ export function AboutPage() {
           >
             <div
               style={{
-                padding: theme.spacing["2xl"],
+                padding: "clamp(16px, 4vw, 48px)",
                 boxShadow: theme.shadow.card,
               }}
             >
@@ -87,7 +87,8 @@ export function AboutPage() {
                   style={{
                     marginBottom: theme.spacing.lg,
                     whiteSpace: "pre-line",
-                    textAlign: "justify", // Added justify here
+                    textAlign: "left",
+                    overflowWrap: "anywhere",
                   }}
                 >
                   {story}
@@ -201,7 +202,7 @@ export function AboutPage() {
               fontSize: theme.typography.fontSize.base,
               color: theme.colors.text.secondary,
               lineHeight: theme.typography.lineHeight.body,
-              padding: theme.spacing["2xl"],
+              padding: "clamp(16px, 4vw, 48px)",
               boxShadow: theme.shadow.card,
             }}
           >
@@ -218,7 +219,8 @@ export function AboutPage() {
               style={{
                 marginBottom: theme.spacing.lg,
                 whiteSpace: "pre-line",
-                textAlign: "justify", // Added justify here
+                textAlign: "left",
+                    overflowWrap: "anywhere",
               }}
             >
               {mission}
@@ -237,7 +239,8 @@ export function AboutPage() {
               style={{
                 marginBottom: theme.spacing.lg,
                 whiteSpace: "pre-line",
-                textAlign: "justify", // Added justify here
+                textAlign: "left",
+                    overflowWrap: "anywhere",
               }}
             >
               {vision}
@@ -256,7 +259,8 @@ export function AboutPage() {
               style={{
                 marginBottom: 0,
                 whiteSpace: "pre-line",
-                textAlign: "justify", // Added justify here
+                textAlign: "left",
+                    overflowWrap: "anywhere",
               }}
             >
               {expertise}

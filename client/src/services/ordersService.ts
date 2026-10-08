@@ -7,7 +7,6 @@ export type CheckoutCartItem = { product_id: string; quantity: number };
 export type CheckoutPayload = {
   cart_items: CheckoutCartItem[];
   coupon_code?: string | null;
-  ambassador_code?: string | null;
   shipping: {
     method: "mondial_relay" | "home_delivery";
     amount: number; // ✅ cents
@@ -40,7 +39,6 @@ export type CheckoutResponse = {
     currency: string;
     status: string;
     coupon_code?: string | null;
-    ambassador?: { id: string; code: string; commission_amount: number } | null;
   };
   stripe: { session_id: string; checkout_url: string };
 };

@@ -79,7 +79,6 @@ export default function AdminLayout() {
       title: "Commandes",
       items: [
         { to: "/admin/orders", label: "Commandes", icon: Bus },
-        { to: "/admin/ambassadors", label: "Ambassadeurs", icon: User }
       ],
     },
     {

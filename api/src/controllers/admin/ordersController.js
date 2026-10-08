@@ -37,7 +37,8 @@ async function trySend(orderBefore, orderAfter, action, changes) {
     orderBefore?.customer_email ||
     null;
 
-  if (!to) return;
+  if (!to) return { email_sent: false, email_warning: "Modification enregistrée, mais aucune adresse e-mail client n’est disponible." };
+  if (action !== "deleted" && !changes.length) return { email_sent: false };
 
   const orderId = orderAfter?.id || orderBefore?.id || "";
   const subject =
@@ -57,8 +58,10 @@ async function trySend(orderBefore, orderAfter, action, changes) {
       address,
       changes,
     });
+    return { email_sent: true };
   } catch (e) {
     console.error("[adminOrders] email failed:", e?.message);
+    return { email_sent: false, email_warning: "Modification enregistrée, mais l’e-mail n’a pas pu être envoyé. Vérifiez la configuration SMTP." };
   }
 }
 
@@ -94,9 +97,9 @@ export const updateOrderStatus = async (req, res) => {
       { key: "status", label: "Statut commande" },
     ]);
 
-    await trySend(before, after, "update_status", changes);
+    const notification = await trySend(before, after, "update_status", changes);
 
-    return res.json({ message: "Order status updated successfully", order: after });
+    return res.json({ message: "Order status updated successfully", order: after, ...notification });
   } catch (error) {
     console.error("Admin updateOrderStatus error:", error);
     return sendError(res, error);
@@ -115,9 +118,9 @@ export const updateOrderShipping = async (req, res) => {
       { key: "shipping_tracking_url", label: "Lien de suivi" },
     ]);
 
-    await trySend(before, after, "update_shipping", changes);
+    const notification = await trySend(before, after, "update_shipping", changes);
 
-    return res.json({ message: "Order shipping updated successfully", order: after });
+    return res.json({ message: "Order shipping updated successfully", order: after, ...notification });
   } catch (error) {
     console.error("Admin updateOrderShipping error:", error);
     return sendError(res, error);

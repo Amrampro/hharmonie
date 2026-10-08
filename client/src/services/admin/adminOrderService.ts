@@ -164,14 +164,14 @@ export const adminOrderService = {
   },
 
   updateOrderStatus(id: string, payload: UpdateOrderStatusPayload) {
-    return http<{ order: AdminOrder }>(apiEndpoints.adminOrders.status(id), {
+    return http<{ order: AdminOrder; email_warning?: string }>(apiEndpoints.adminOrders.status(id), {
       method: "PATCH",
       body: JSON.stringify(payload),
     });
   },
 
   updateOrderShipping(id: string, payload: UpdateShippingPayload) {
-    return http<{ order: AdminOrder }>(apiEndpoints.adminOrders.setShipping(id), {
+    return http<{ order: AdminOrder; email_warning?: string }>(apiEndpoints.adminOrders.setShipping(id), {
       method: "PATCH",
       body: JSON.stringify(payload),
     });
