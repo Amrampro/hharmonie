@@ -142,6 +142,7 @@ export function ConsultationPage() {
 
           <form onSubmit={submit}>
             <h2>{selectedServiceData?.name || "Votre rendez-vous"}</h2>
+            {selectedServiceData?.description && <p className="whitespace-pre-wrap mb-5">{selectedServiceData.description}</p>}
             <fieldset disabled={submitting} className="consultation-fields">
             <div className="slot-grid">
               {availableSlots.length ? availableSlots.map((slot) => (

@@ -221,6 +221,34 @@ export async function adminCreateService(req, res) {
   }
 }
 
+export async function adminUpdateService(req, res) {
+  try {
+    const [existing] = await query("SELECT id FROM appointment_services WHERE id = ?", [req.params.id]);
+    if (!existing) return res.status(404).json({ error: "Consultation introuvable." });
+    const fields = [], values = [];
+    const body = req.body || {};
+    for (const [key, max] of [["name", 190], ["short_description", 500], ["description", 10000]]) {
+      if (body[key] === undefined) continue;
+      const value = body[key] == null && key !== "name" ? "" : body[key];
+      if (typeof value !== "string" || value.trim().length > max || (key === "name" && !value.trim())) return res.status(400).json({ error: `Champ ${key} invalide (maximum ${max} caractères).` });
+      fields.push(`${key} = ?`); values.push(value.trim() || null);
+    }
+    if (body.duration_minutes !== undefined) {
+      const duration = Number(body.duration_minutes);
+      if (!Number.isInteger(duration) || duration < 1 || duration > 1440) return res.status(400).json({ error: "La durée doit être comprise entre 1 et 1440 minutes." });
+      fields.push("duration_minutes = ?"); values.push(duration);
+    }
+    if (body.meeting_type !== undefined) {
+      if (!["online", "physical", "phone", "hybrid"].includes(body.meeting_type)) return res.status(400).json({ error: "Format de consultation invalide." });
+      fields.push("meeting_type = ?"); values.push(body.meeting_type);
+    }
+    if (!fields.length) return res.status(400).json({ error: "Aucune modification à enregistrer." });
+    await query(`UPDATE appointment_services SET ${fields.join(", ")} WHERE id = ?`, [...values, req.params.id]);
+    const [service] = await query("SELECT * FROM appointment_services WHERE id = ?", [req.params.id]);
+    res.json({ service: { ...service, is_active: toBool(service.is_active) } });
+  } catch (error) { sendApiError(res, error); }
+}
+
 export async function adminCreateSlot(req, res) {
   try {
     const { service_id, available_date, start_time, end_time, status = "available", price = 0 } = req.body ?? {};

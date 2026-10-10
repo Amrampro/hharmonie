@@ -118,6 +118,18 @@ test("appointment payments: additive migration, free, paid, expiry, retry and pa
     const filtered = response(); await faqApi.getFaqs({ query: { category: "Consultations" } }, filtered);
     assert.equal(filtered.body.faqs.length, 1); assert.equal(filtered.body.faqs[0].question, "Comment réserver ?");
     const allFaqs = response(); await faqApi.getFaqs({ query: {} }, allFaqs); assert.equal(allFaqs.body.faqs.length, 3);
+    const edited = response();
+    await api.adminUpdateService({ params: { id: "service" }, body: { name: "Coaching corrigé", short_description: "Présentation corrigée", description: "Détails\nsur deux lignes", duration_minutes: 45, meeting_type: "hybrid" } }, edited);
+    assert.equal(edited.statusCode, 200, JSON.stringify(edited.body)); assert.equal(edited.body.service.slug, "consultation");
+    const publicServices = response(); await api.listServices({}, publicServices);
+    assert.equal(publicServices.body.services[0].short_description, "Présentation corrigée");
+    assert.equal(publicServices.body.services[0].description, "Détails\nsur deux lignes");
+    assert.equal(Number((await database.query("SELECT price FROM appointment_slots WHERE id='paid'"))[0].price), 65);
+    assert.equal((await database.query("SELECT payment_status FROM appointments WHERE slot_id='paid'"))[0].payment_status, "paid");
+    for (const body of [{ name: " " }, { duration_minutes: -1 }, { meeting_type: "invalid" }, { short_description: "x".repeat(501) }]) {
+      const invalid = response(); await api.adminUpdateService({ params: { id: "service" }, body }, invalid); assert.equal(invalid.statusCode, 400);
+    }
+    const missing = response(); await api.adminUpdateService({ params: { id: "missing" }, body: { name: "Test" } }, missing); assert.equal(missing.statusCode, 404);
     fail = true; assert.equal((await book("failure")).statusCode, 500);
     assert.equal((await database.query("SELECT status FROM appointment_slots WHERE id='failure'"))[0].status, "available");
     assert.equal((await database.query("SELECT COUNT(*) AS total FROM appointments WHERE slot_id='failure'"))[0].total, 0);

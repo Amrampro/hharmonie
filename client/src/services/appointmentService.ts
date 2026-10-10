@@ -139,6 +139,10 @@ export const appointmentService = {
     return http<{ services: AppointmentService[] }>(apiEndpoints.appointments.admin.services);
   },
 
+  adminUpdateService(id: string, payload: Partial<AppointmentService>) {
+    return http<{ service: AppointmentService }>(`${apiEndpoints.appointments.admin.services}/${encodeURIComponent(id)}`, { method: "PUT", body: JSON.stringify(payload) });
+  },
+
   adminCreateService(payload: Partial<AppointmentService>) {
     return http<{ service: AppointmentService }>(apiEndpoints.appointments.admin.services, {
       method: "POST",
