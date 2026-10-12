@@ -39,7 +39,7 @@ export default function AdminAppointmentsPage() {
     setSlots(slotResp.slots || []);
     setSlotLinks(Object.fromEntries((slotResp.slots || []).map(slot => [slot.id, slot.meeting_url || ""])));
     setSlotPrices(Object.fromEntries((slotResp.slots || []).map(slot => [slot.id, String(slot.price)])));
-    setSlotForm((current) => ({ ...current, service_id: current.service_id || loadedServices[0]?.id || "" }));
+    setSlotForm((current) => ({ ...current, service_id: loadedServices.some(service => service.id === current.service_id) ? current.service_id : loadedServices[0]?.id || "" }));
   };
 
   useEffect(() => {
@@ -64,6 +64,17 @@ export default function AdminAppointmentsPage() {
       await appointmentService.adminCreateSlot(slotForm);
       setNotice("Créneau créé.");
       await load();
+    });
+  };
+
+  const deleteService = async (service: AppointmentService) => {
+    if (!window.confirm(`Supprimer la consultation « ${service.name} » et ses créneaux non réservés ? Cette action est définitive. Les consultations liées à une réservation ne peuvent pas être supprimées.`)) return;
+    await run(async () => {
+      setNotice("");
+      await appointmentService.adminDeleteService(service.id);
+      if (editingService === service.id) { setEditingService(null); setServiceForm(emptyService()); }
+      await load();
+      setNotice("Consultation supprimée.");
     });
   };
 
@@ -96,8 +107,8 @@ export default function AdminAppointmentsPage() {
         <p className="mt-2 mb-5 text-slate-500">Choisissez « Modifier » pour corriger une consultation existante. Le prix payé se règle dans les créneaux, plus bas.</p>
         <div className="grid gap-6 xl:grid-cols-2">
           <div className="space-y-3">{services.map(service => <article key={service.id} className={`rounded-xl border p-4 ${editingService === service.id ? "border-[#A47788] bg-[#faf5f7]" : "border-slate-200"}`}>
-            <div className="flex items-start justify-between gap-3"><div><h3 className="font-semibold">{service.name}</h3><p className="text-sm text-slate-500">{service.duration_minutes} min · {meetingTypeLabels[service.meeting_type]}</p></div>
-            <button type="button" disabled={busy} onClick={() => editService(service)} className="inline-flex items-center gap-2 rounded-lg border px-3 py-2"><Pencil size={16} /> Modifier</button></div>
+            <div className="flex flex-wrap items-start justify-between gap-3"><div><h3 className="font-semibold">{service.name}</h3><p className="text-sm text-slate-500">{service.duration_minutes} min · {meetingTypeLabels[service.meeting_type]}</p></div>
+            <div className="flex flex-wrap shrink-0 gap-2"><button type="button" disabled={busy} onClick={() => editService(service)} className="inline-flex items-center gap-2 rounded-lg border px-3 py-2"><Pencil size={16} /> Modifier</button><button type="button" disabled={busy} onClick={() => deleteService(service)} className="inline-flex items-center gap-2 rounded-lg border border-red-200 px-3 py-2 text-red-700"><Trash2 size={16} /> Supprimer</button></div></div>
             <p className="mt-3 whitespace-pre-wrap break-words text-sm text-slate-600">{service.short_description || "Aucun texte de présentation."}</p>
           </article>)}{!services.length && <p>Aucune consultation. Créez votre première consultation avec le formulaire.</p>}</div>
           <form ref={serviceFormRef} onSubmit={createService} className="rounded-xl bg-slate-50 border p-5">

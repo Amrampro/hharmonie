@@ -130,6 +130,13 @@ test("appointment payments: additive migration, free, paid, expiry, retry and pa
       const invalid = response(); await api.adminUpdateService({ params: { id: "service" }, body }, invalid); assert.equal(invalid.statusCode, 400);
     }
     const missing = response(); await api.adminUpdateService({ params: { id: "missing" }, body: { name: "Test" } }, missing); assert.equal(missing.statusCode, 404);
+    const protectedService = response(); await api.adminDeleteService({ params: { id: "service" } }, protectedService); assert.equal(protectedService.statusCode, 409);
+    assert.equal((await database.query("SELECT payment_status FROM appointments WHERE slot_id='paid'"))[0].payment_status, "paid");
+    await database.query("INSERT INTO appointment_services (id,name,slug) VALUES ('remove','À supprimer','remove')");
+    await database.query("INSERT INTO appointment_slots (id,service_id,available_date,start_time,end_time) VALUES ('remove-slot','remove','2099-01-01','10:00','11:00')");
+    const removed = response(); await api.adminDeleteService({ params: { id: "remove" } }, removed); assert.equal(removed.statusCode, 200, JSON.stringify(removed.body));
+    assert.equal((await database.query("SELECT id FROM appointment_services WHERE id='remove'")).length, 0);
+    assert.equal((await database.query("SELECT id FROM appointment_slots WHERE id='remove-slot'")).length, 0);
     fail = true; assert.equal((await book("failure")).statusCode, 500);
     assert.equal((await database.query("SELECT status FROM appointment_slots WHERE id='failure'"))[0].status, "available");
     assert.equal((await database.query("SELECT COUNT(*) AS total FROM appointments WHERE slot_id='failure'"))[0].total, 0);

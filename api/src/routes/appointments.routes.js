@@ -2,6 +2,7 @@ import { Router } from "express";
 import {
   adminCreateService,
   adminUpdateService,
+  adminDeleteService,
   adminCreateSlot,
   adminDeleteSlot,
   adminListAppointments,
@@ -34,6 +35,7 @@ router.get("/admin/documents/:id", adminDownloadDocument);
 router.get("/admin/services", adminListServices);
 router.post("/admin/services", adminCreateService);
 router.put("/admin/services/:id", adminUpdateService);
+router.delete("/admin/services/:id", adminDeleteService);
 router.post("/admin/slots", adminCreateSlot);
 router.put("/admin/slots/:id", adminUpdateSlot);
 router.delete("/admin/slots/:id", adminDeleteSlot);

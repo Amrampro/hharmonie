@@ -322,3 +322,14 @@ export async function adminDeleteSlot(req, res) {
     sendApiError(res, error);
   }
 }
+
+export async function adminDeleteService(req, res) {
+  try {
+    const deleted = await query(`DELETE sv FROM appointment_services sv WHERE sv.id = ?
+      AND NOT EXISTS (SELECT 1 FROM appointments a WHERE a.service_id = sv.id)
+      AND NOT EXISTS (SELECT 1 FROM appointment_slots s JOIN appointments a ON a.slot_id = s.id WHERE s.service_id = sv.id)
+      AND NOT EXISTS (SELECT 1 FROM appointment_slots s WHERE s.service_id = sv.id AND s.status = 'booked')`, [req.params.id]);
+    if (!deleted.affectedRows) return res.status(409).json({ error: "Cette consultation est liée à une réservation ou n’existe plus. Elle ne peut pas être supprimée afin de conserver l’historique des rendez-vous." });
+    res.json({ success: true });
+  } catch (error) { sendApiError(res, error); }
+}
