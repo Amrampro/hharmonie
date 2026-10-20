@@ -414,6 +414,7 @@ export function Footer({ onNavigate }: FooterProps) {
                 Navigation
               </h4>
               <Link to="/admin">Administration</Link>
+                <p><Link to="/follow-order">Suivi des commandes</Link></p>
               <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
                 {[
                   { label: "Accueil", key: "home" },

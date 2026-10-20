@@ -22,7 +22,6 @@ export type CheckoutPayload = {
     };
     relay_point?: {
       id: string;
-    tracking_token: string;
       name?: string | null;
       address?: string | null;
     } | null;
@@ -32,6 +31,7 @@ export type CheckoutPayload = {
 export type CheckoutResponse = {
   order: {
     id: string;
+    tracking_token: string;
     subtotal_amount: number;
     discount_amount: number;
     shipping_amount: number;
@@ -53,6 +53,10 @@ export const ordersService = {
     });
   },
 
+  lookup(reference: string, email: string) {
+    return http<any>(`${apiEndpoints.base}/orders/lookup`, { method: "POST", body: JSON.stringify({ reference, email }), auth: false });
+  },
+  invoiceUrl(id: string, token: string) { return `${apiEndpoints.base}/orders/${encodeURIComponent(id)}/invoice?token=${encodeURIComponent(token)}`; },
   getOrder(id: string, token = "", sessionId = "") {
     const url = sessionId ? `${apiEndpoints.base}/orders/checkout-session/${encodeURIComponent(sessionId)}` : `${apiEndpoints.orders.byId(id)}?token=${encodeURIComponent(token)}`;
     return http<any>(url, { method: "GET", auth: false });

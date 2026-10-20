@@ -1,5 +1,5 @@
 // client/src/pages/admin/AdminLayout.tsx
-import React, { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import {
@@ -105,6 +105,7 @@ export default function AdminLayout() {
         { to: "/admin/banners", label: "Bannières", icon: ImageIcon },
         { to: "/admin/legal-links", label: "Pages légales", icon: LinkIcon },
         { to: "/admin/parameters", label: "Paramètres", icon: Settings },
+        { to: "/admin/shipping", label: "Livraisons et tarifs", icon: Settings },
       ],
     },
   ];
@@ -178,7 +179,7 @@ export default function AdminLayout() {
                   <NavLink
                     key={item.to}
                     to={item.to}
-                    end={item.exact}
+                    end={"exact" in item ? item.exact : false}
                     className={({ isActive }) =>
                       `group relative flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ease-in-out ${
                         isActive

@@ -15,7 +15,9 @@ type OrderData = {
 const labels: Record<string, string> = { pending_payment: "En attente du paiement", pending: "En attente", paid: "Paiement confirmé", processing: "En préparation", shipped: "Expédiée", delivered: "Livrée", completed: "Terminée", cancelled: "Annulée", refunded: "Remboursée", not_set: "En attente de préparation" };
 const paidStates = ["paid", "processing", "shipped", "delivered", "completed"];
 export default function OrderSuccessPage({ tracking = false }: { tracking?: boolean }) {
-  const [params] = useSearchParams();
+  const [params, setParams] = useSearchParams();
+  const [reference, setReference] = useState("");
+  const [email, setEmail] = useState("");
   const id = params.get("order") || "";
   const session = params.get("session_id") || "";
   let token = params.get("token") || "";
@@ -45,7 +47,7 @@ export default function OrderSuccessPage({ tracking = false }: { tracking?: bool
       } catch (cause: any) { if (!cancelled) setError(cause.message || "Impossible de charger la commande."); }
       finally { if (!cancelled) setLoading(false); }
     };
-    setLoading(true); void load();
+    setData(null); setLoading(true); void load();
     return () => { cancelled = true; if (timer) clearTimeout(timer); };
   }, [id, token, session, tracking, attempt]);
   const order = data?.order;
@@ -62,7 +64,19 @@ export default function OrderSuccessPage({ tracking = false }: { tracking?: bool
     </aside>}
     <header><span>{parameters?.name || "Hormones & Harmonie"}</span><h1>{tracking ? "Suivi des commandes" : paid ? "Merci pour votre commande !" : "Votre commande"}</h1>
       {order && <><p>Référence : <strong>{order.order_number || order.id}</strong></p><p role="status" className={paid ? "order-paid" : ""}>{labels[order.status] || order.status}</p></>}
-      {!id && !session && <p>Pour retrouver votre commande, cliquez sur « Voir sur le site » dans votre email de confirmation.</p>}
+      {tracking && <form className="order-search" onSubmit={async event => {
+        event.preventDefault(); setLoading(true); setError(""); setData(null);
+        try {
+          const found: OrderData = await ordersService.lookup(reference, email);
+          setData(found);
+          setParams(new URL(found.tracking_url).searchParams);
+        } catch (cause: any) { setError(cause.message); }
+        finally { setLoading(false); }
+      }}>
+        <label>Numéro de commande<input required maxLength={80} value={reference} onChange={e => setReference(e.target.value)} /></label>
+        <label>E-mail utilisé à l’achat<input required type="email" maxLength={190} value={email} onChange={e => setEmail(e.target.value)} /></label>
+        <button className="order-refresh" disabled={loading}>Rechercher ma commande</button>
+      </form>}
       {loading && <p role="status">Vérification de votre commande…</p>}
       {error && <p role="alert" className="hh-error">{error}</p>}
       {(id || session) && <button type="button" className="order-refresh" disabled={loading} onClick={() => setAttempt(value => value + 1)}>Actualiser le suivi</button>}
@@ -70,6 +84,8 @@ export default function OrderSuccessPage({ tracking = false }: { tracking?: bool
     {data && order && <>
       {paid && <p>{order.invoice_sent_at ? `Votre confirmation a été envoyée à ${data.address?.email || "votre adresse email"}. Vérifiez également vos courriers indésirables.` : "Votre paiement est confirmé. L’email de confirmation est en cours d’envoi."}</p>}
       {!paid && ["pending", "pending_payment"].includes(order.status) && <p>La confirmation du paiement peut prendre quelques instants. Cette page se met à jour automatiquement.</p>}
+      {paid && <aside className="order-delivery-notice"><p>Délai de livraison : 3 -7 jours ouvrables. A partir du jour où le colis a été expédié.</p><p>Un e-mail de confirmation avec un numéro de suivi vous sera envoyé dès l’expédition.</p></aside>}
+      {(paid || order.status === "refunded") && <p><a className="event-external-link" href={ordersService.invoiceUrl(order.id, new URL(data.tracking_url).searchParams.get("token") || "")} download>Télécharger la facture</a></p>}
       <div className="order-follow-grid"><article><h2>Votre commande</h2>{data.items.map(item => <div className="order-follow-item" key={item.id}><div><strong>{item.product_name}</strong><p>{item.quantity} × {money(item.unit_price)}</p></div><strong>{money(item.line_total)}</strong></div>)}
         <dl className="order-totals">{[["Sous-total", order.subtotal_amount], ["Réduction", -order.discount_amount], ["Livraison", order.shipping_amount], ["Total", order.total_amount]].map(([label, amount]) => <div key={String(label)}><dt>{label}</dt><dd>{money(Number(amount))}</dd></div>)}</dl>
       </article><article><h2>Livraison</h2>{data.address && <address>{data.address.full_name}<br />{data.address.address1}{data.address.address2 && <><br />{data.address.address2}</>}<br />{data.address.postal_code} {data.address.city}<br />{data.address.country}</address>}

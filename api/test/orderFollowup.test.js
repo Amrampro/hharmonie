@@ -78,6 +78,11 @@ test("order confirmation, private tracking, SMTP retry and additive migration", 
     await assert.rejects(orders.getOrderForUser({ orderId: "order", token: "0".repeat(64) }));
     const result = await orders.getOrderForUser({ orderId: "order", token: saved.tracking_token });
     assert.equal(result.items[0].product_name, "Produit test"); assert.equal(result.order.tracking_token, undefined); assert.ok(result.tracking_url.includes("/follow-order?"));
+    await assert.rejects(orders.lookupOrder("order", "wrong@example.com"));
+    const [buyer] = await database.query("SELECT email FROM order_addresses WHERE order_id='order'");
+    const found = await orders.lookupOrder("order", buyer.email.toUpperCase());
+    assert.equal(found.order.id, "order");
+    assert.ok(found.tracking_url.includes(saved.tracking_token));
     const fromStripe = await orders.getOrderForUser({ sessionId: "cs_test_order" }); assert.equal(fromStripe.order.status, "paid");
     await connection.query("UPDATE orders SET status='shipped' WHERE id='order'");
     await payments.reconcileOrderPayment(session); assert.equal((await database.query("SELECT status FROM orders WHERE id='order'"))[0].status, "shipped"); assert.equal(emails.length, 1);
@@ -108,14 +113,15 @@ test("checkout ignores retired ambassador codes and creates no commissions", asy
     beginTransaction: async () => {}, commit: async () => {}, rollback: async () => {}, release() {},
     execute: async (sql, params) => {
       if (sql.includes("FROM products")) return [[{ id: "product", name: "Produit", price: 25 }]];
+      if (sql.includes("FROM shipping_rates")) return [[{ amount_cents: 787, free_shipping_threshold_cents: null }]];
       if (sql.includes("paid_count")) return [[{ paid_count: 1 }]];
       writes.push({ sql, params }); return [{ affectedRows: 1 }];
     },
   };
   class FakeStripe { checkout = { sessions: { create: async () => ({ id: "cs_fake", url: "https://checkout.stripe.com/fake" }) } }; }
   const api = await loadController("../services/orders.service", { getConnection: async () => connection, query: async () => { throw new Error("Unexpected lookup"); } }, { stripe: { default: FakeStripe } }, { STRIPE_SECRET_KEY: "fake" });
-  const result = await api.createCheckout({ userId: 1, ambassador_code: "RETIRED", cart_items: [{ product_id: "product", quantity: 1 }], shipping: { method: "home_delivery", amount: 0, address: { full_name: "Client", email: "client@example.invalid", phone: "123", city: "Bruxelles", postal_code: "1000", address1: "Rue test" } } });
-  assert.equal(result.order.total_amount, 2500); assert.equal(result.order.ambassador, undefined);
+  const result = await api.createCheckout({ userId: 1, ambassador_code: "RETIRED", cart_items: [{ product_id: "product", quantity: 1 }], shipping: { method: "home_delivery", amount: 0, address: { full_name: "Client", email: "client@example.invalid", phone: "0470123456", country: "BE", city: "Bruxelles", postal_code: "1000", address1: "Rue test" } } });
+  assert.equal(result.order.total_amount, 3287); assert.equal(result.order.ambassador, undefined);
   assert.ok(writes.every(write => !/ambassador|commission/i.test(write.sql)));
   for (const { sql, params } of writes) assert.equal((sql.match(/\?/g) || []).length, params.length);
 });

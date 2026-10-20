@@ -1,3 +1,4 @@
+import shippingRoutes from "./routes/shipping.routes.js";
 import contentRoutes from "./routes/content.routes.js";
 // api/src/server.js
 
@@ -240,6 +241,7 @@ app.use("/api/parameters", parametersRoutes);
 app.use("/api/pr", productReviewsRoutes);
 
 app.use("/api/orders", ordersRoutes);
+app.use("/api/shipping", shippingRoutes);
 
 app.use("/api/contact", contactRoutes);
 app.use("/api/content", contentRoutes);

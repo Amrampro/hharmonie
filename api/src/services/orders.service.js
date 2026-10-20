@@ -1,3 +1,4 @@
+import { calculateShipping, validateShippingAddress } from "./shipping.service.js";
 import { Buffer } from "node:buffer";
 import { publicSiteUrl, orderTrackingUrl } from "../utils/publicSite.js";
 import { reconcileOrderPayment } from "./orderPayment.service.js";
@@ -111,8 +112,7 @@ export async function createCheckout({
   if (!shipping?.method) throw new Error("Shipping method is required");
   if (!shipping?.address) throw new Error("Shipping address is required");
 
-  // ✅ shipping.amount (cents) vient du frontend
-  const shipping_amount = Math.max(0, toInt(shipping?.amount, 0));
+  validateShippingAddress(shipping);
 
   const currency = "EUR";
   const connection = await getConnection();
@@ -143,7 +143,7 @@ export async function createCheckout({
       ? Math.round(subtotal_amount * (percentOff / 100))
       : 0;
 
-      const shipping_amount = Math.max(0, toInt(shipping?.amount, 0));
+    const shipping_amount = await calculateShipping(connection, shipping.method, a.country, subtotal_amount);
 
     // 3) total
     const total_amount = Math.max(
@@ -280,11 +280,12 @@ export async function createCheckout({
         (id, order_id, provider, relay_point_id, relay_point_name, relay_point_address,
          label_url, tracking_number, tracking_url, created_at, updated_at)
       VALUES
-        (?, ?, 'mondial_relay', ?, ?, ?, NULL, NULL, NULL, NOW(), NOW())
+        (?, ?, ?, ?, ?, ?, NULL, NULL, NULL, NOW(), NOW())
       `,
       [
         crypto.randomUUID(),
         orderId,
+        shipping.method,
         relay?.id ?? null,
         relay?.name ?? null,
         relay?.address ?? null,
@@ -418,4 +419,16 @@ export async function getOrderForUser({ orderId, token, sessionId }) {
   const tracking_url = orderTrackingUrl(order);
   const { tracking_token, invoice_send_started_at, ...publicOrder } = order;
   return { order: publicOrder, items, address: address ?? null, shipping: shipping ?? null, tracking_url };
+}
+
+export async function lookupOrder(reference, email) {
+  if (typeof reference !== "string" || typeof email !== "string" || reference.length > 80 || email.length > 190) throw new Error("Commande introuvable. Vérifiez la référence et l’e-mail.");
+  const [order] = await query("SELECT o.id, o.tracking_token FROM orders o JOIN order_addresses a ON a.order_id=o.id WHERE (o.id=? OR o.order_number=?) AND LOWER(a.email)=? LIMIT 1", [reference.trim(), reference.trim(), email.trim().toLowerCase()]);
+  if (!order) throw new Error("Commande introuvable. Vérifiez la référence et l’e-mail.");
+  if (!order.tracking_token) {
+    await query("UPDATE orders SET tracking_token=COALESCE(tracking_token,?) WHERE id=?", [crypto.randomBytes(32).toString("hex"), order.id]);
+    const [saved] = await query("SELECT tracking_token FROM orders WHERE id=?", [order.id]);
+    order.tracking_token = saved.tracking_token;
+  }
+  return getOrderForUser({ orderId: order.id, token: order.tracking_token });
 }

@@ -1,6 +1,28 @@
 import { sendApiError } from "../utils/apiError.js";
 // api/src/controllers/orders.controller.js
-import { createCheckout, getOrderForUser } from "../services/orders.service.js";
+import { createCheckout, getOrderForUser, lookupOrder } from "../services/orders.service.js";
+import { query } from "../config/database.js";
+import { renderInvoicePdf } from "../services/invoicePdf.service.js";
+
+export async function lookup(req, res) {
+  try {
+    const data = await lookupOrder(req.body?.reference, req.body?.email);
+    res.setHeader("Cache-Control", "no-store");
+    res.json(data);
+  } catch { res.status(404).json({ error: "Commande introuvable. Vérifiez le numéro de commande et l’e-mail utilisé à l’achat." }); }
+}
+export async function invoice(req, res) {
+  try {
+    const data = await getOrderForUser({ orderId: req.params.id, token: req.query.token });
+    if (!["paid", "processing", "shipped", "delivered", "completed", "refunded"].includes(data.order.status)) return res.status(409).json({ error: "La facture sera disponible après confirmation du paiement." });
+    const [company] = await query("SELECT * FROM parameters ORDER BY created_at ASC LIMIT 1");
+    const pdf = await renderInvoicePdf(data, company);
+    res.setHeader("Cache-Control", "no-store");
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `attachment; filename="facture-${data.order.id.replace(/[^a-zA-Z0-9-]/g, "")}.pdf"`);
+    res.send(pdf);
+  } catch { res.status(404).json({ error: "Facture indisponible. Utilisez votre lien privé de suivi." }); }
+}
 
 export async function checkout(req, res) {
   try {

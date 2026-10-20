@@ -346,3 +346,8 @@ body {
 .admin-appointments small { display: block; margin-top: 6px; color: #64748b; font-weight: 400; }
 .admin-appointments button:disabled { opacity: .5; cursor: not-allowed; }
 .admin-appointments button { min-height: 40px; }
+
+.order-search { display: flex; flex-wrap: wrap; gap: 16px; align-items: end; margin: 24px 0; }
+.order-search label { display: grid; gap: 8px; flex: 1 1 240px; }
+.order-search input { width: 100%; padding: 12px; border: 1px solid #c9a8b3; border-radius: 8px; background: white; }
+.order-delivery-notice { padding: 16px 24px; border: 1px solid #c9a8b3; border-radius: 12px; background: #fff; margin: 20px 0; }

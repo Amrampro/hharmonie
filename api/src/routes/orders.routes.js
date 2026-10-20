@@ -8,6 +8,8 @@ const router = Router();
 // router.use(authMiddleware);
 
 router.post("/checkout", OrdersController.checkout);
+router.post("/lookup", OrdersController.lookup);
+router.get("/:id/invoice", OrdersController.invoice);
 router.get("/user/:id", OrdersController.getMyOrder);
 router.get("/checkout-session/:sessionId", OrdersController.getOrder);
 router.get("/:id", OrdersController.getOrder);

@@ -1,5 +1,6 @@
+import { shippingService, ShippingMethod } from "../services/shippingService";
 // client/src/pages/CheckoutPage.tsx
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { loadStripe } from "@stripe/stripe-js";
 import {
@@ -22,46 +23,6 @@ const stripePromise = loadStripe(
 
 const baseUrl = import.meta.env.VITE_BASE_URL;
 
-// --- CONSTANTES TARIFS ET PAYS ---
-// 1. Tarifs Mondial Relay
-const RATES_RELAY: Record<string, number> = {
-  BE: 3.90,
-  FR: 5.69,
-  NL: 4.40,
-  LU: 4.45,
-  DE: 9.35,
-  ES: 6.97,
-  IT: 6.92,
-  PL: 9.23,
-  PT: 6.95,
-  AT: 12.12,
-};
-
-// 2. Tarifs Livraison à Domicile
-const RATES_HOME: Record<string, number> = {
-  BE: 11.78,
-  DE: 12.40,
-  FR: 12.10,
-  IT: 12.70,
-  LU: 12.10,
-  NL: 11.88,
-  AT: 15.73,
-};
-
-// 3. Liste complète des pays
-const COUNTRY_OPTIONS: { code: string; label: string }[] = [
-  { code: "BE", label: "Belgique" },
-  { code: "FR", label: "France" },
-  { code: "NL", label: "Pays-Bas" },
-  { code: "LU", label: "Luxembourg" },
-  { code: "DE", label: "Allemagne" },
-  { code: "ES", label: "Espagne" },
-  { code: "IT", label: "Italie" },
-  { code: "PL", label: "Pologne" },
-  { code: "PT", label: "Portugal" },
-  { code: "AT", label: "Autriche" },
-];
-
 // Utilitaires de conversion
 function eurToCents(eur: number) {
   return Math.round(eur * 100);
@@ -80,7 +41,6 @@ type AddressForm = {
 
 // --- COMPOSANT INTERNE : FORMULAIRE STRIPE ---
 function CheckoutInner({
-  clientSecret,
   orderId,
   onPaid,
 }: {
@@ -178,12 +138,12 @@ export function CheckoutPage() {
   const { user } = useAuth();
   const { items, getCartTotal, clearCart } = useCart();
 
-  const [step, setStep] = useState<"form" | "payment">("form");
+  const [step] = useState<"form" | "payment">("form");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [clientSecret, setClientSecret] = useState<string | null>(null);
-  const [orderId, setOrderId] = useState<string | null>(null);
+  const [clientSecret] = useState<string | null>(null);
+  const [orderId] = useState<string | null>(null);
 
 
   const [shippingMethod, setShippingMethod] = useState<
@@ -217,29 +177,23 @@ export function CheckoutPage() {
     }));
   }, [items]);
 
-  // --- LOGIQUE DE CALCUL ---
-  const currentRateTable =
-    shippingMethod === "mondial_relay" ? RATES_RELAY : RATES_HOME;
-
-  const subtotalEur = useMemo(
-    () => Number(getCartTotal() || 0),
-    [getCartTotal],
-  );
-  const subtotalCents = useMemo(() => eurToCents(subtotalEur), [subtotalEur]);
-
-  const isBelgiumFreeShipping = useMemo(() => {
-    return (addr.country || "").toUpperCase() === "BE" && subtotalEur >= 65;
-  }, [addr.country, subtotalEur]);
-
-  const shippingEur = useMemo(() => {
-    const code = (addr.country || "BE").toUpperCase();
-    const baseRate = currentRateTable[code];
-
-    if (baseRate === undefined) return undefined;
-    if (isBelgiumFreeShipping) return 0;
-
-    return baseRate;
-  }, [addr.country, currentRateTable, isBelgiumFreeShipping]);
+  const [shippingConfig, setShippingConfig] = useState<ShippingMethod[]>([]);
+  const [shippingError, setShippingError] = useState("");
+  useEffect(() => { shippingService.get().then(setShippingConfig).catch(e => setShippingError(e.message)); }, []);
+  const methodConfig = shippingConfig.find(m => m.method === shippingMethod);
+  const countries = methodConfig?.rates || [];
+  const threshold = methodConfig?.free_shipping_threshold_cents ?? null;
+  const subtotalEur = Number(getCartTotal() || 0);
+  const subtotalCents = eurToCents(subtotalEur);
+  const isFreeShipping = threshold !== null && subtotalCents >= threshold;
+  const selectedRate = countries.find(r => r.country_code === addr.country);
+  const shippingEur = selectedRate ? (isFreeShipping ? 0 : selectedRate.amount_cents / 100) : undefined;
+  useEffect(() => {
+    if (methodConfig && !methodConfig.rates.some(r => r.country_code === addr.country)) {
+      setAddr(a => ({ ...a, country: methodConfig.rates[0]?.country_code || "", city: "" }));
+    }
+    setRelayPoint(null);
+  }, [shippingMethod, addr.country, methodConfig]);
 
   const shippingCents = useMemo(
     () => (shippingEur !== undefined ? eurToCents(shippingEur) : 0),
@@ -283,14 +237,17 @@ export function CheckoutPage() {
       "email",
       "phone",
       "country",
-      "city",
       "postal_code",
     ];
 
     for (const k of requiredCommon) {
-      if (!String(addr[k] || "").trim()) return `Champ requis: ${k}`;
+      const labels: Partial<Record<keyof AddressForm, string>> = { full_name: "nom complet", email: "e-mail", phone: "téléphone", country: "pays", postal_code: "code postal" };
+      if (!String(addr[k] || "").trim()) return `Veuillez renseigner le champ ${labels[k] || k}.`;
     }
 
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(addr.email.trim())) return "Veuillez renseigner un e-mail valide.";
+    if (addr.phone.replace(/\D/g, "").length < 6) return "Veuillez renseigner un téléphone valide.";
+    if (shippingMethod === "home_delivery" && !addr.city.trim()) return "Veuillez renseigner la ville.";
     if (!isCountrySupported) {
       const modeLabel =
         shippingMethod === "mondial_relay"
@@ -302,7 +259,7 @@ export function CheckoutPage() {
     if (shippingMethod === "mondial_relay") {
       if (!relayPoint?.id) return "Veuillez choisir un point Mondial Relay.";
     } else {
-      if (!String(addr.address1 || "").trim()) return "Champ requis: address1";
+      if (!String(addr.address1 || "").trim()) return "Veuillez renseigner l’adresse de livraison.";
     }
 
     return null;
@@ -361,17 +318,9 @@ export function CheckoutPage() {
     }
   };
 
-  const getOptionLabel = (countryCode: string, label: string) => {
-    const normalizedCountry = countryCode.toUpperCase();
-    const price = currentRateTable[normalizedCountry];
-
-    if (price === undefined) return `${label} — Non disponible`;
-
-    if (normalizedCountry === "BE" && subtotalEur >= 65) {
-      return `${label} — Gratuit dès 65€`;
-    }
-
-    return `${label} — ${price.toFixed(2)} €`;
+  const getOptionLabel = (code: string, label: string) => {
+    const rate = countries.find(r => r.country_code === code);
+    return `${label} — ${isFreeShipping ? "Gratuit" : ((rate?.amount_cents || 0) / 100).toFixed(2) + " €"}`;
   };
 
   return (
@@ -472,52 +421,55 @@ export function CheckoutPage() {
                   </div>
 
                   <h3 style={{ ...theme.heading.h4 }}>Informations</h3>
+                  <p>Les champs marqués * sont obligatoires. La ville du point relais est renseignée lors de sa sélection.</p>
+                  {shippingError && <p role="alert">{shippingError}</p>}
+                  {!methodConfig && !shippingError && <p>Chargement des tarifs…</p>}
 
                   <div style={{ display: "grid", gap: theme.spacing.md }}>
-                    <input
+                    <label>Nom complet *<input required
                       value={addr.full_name}
                       onChange={(e) =>
                         setAddr((s) => ({ ...s, full_name: e.target.value }))
                       }
                       placeholder="Nom complet"
                       style={inputStyle()}
-                    />
+                    /></label>
 
                     <div
                       style={{
                         display: "grid",
-                        gridTemplateColumns: "1fr 1fr",
+                        gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 180px), 1fr))",
                         gap: theme.spacing.md,
                       }}
                     >
-                      <input
+                      <label>E-mail *<input required type="email"
                         value={addr.email}
                         onChange={(e) =>
                           setAddr((s) => ({ ...s, email: e.target.value }))
                         }
                         placeholder="Email"
                         style={inputStyle()}
-                      />
-                      <input
+                      /></label>
+                      <label>Téléphone *<input required type="tel"
                         value={addr.phone}
                         onChange={(e) =>
                           setAddr((s) => ({ ...s, phone: e.target.value }))
                         }
                         placeholder="Téléphone"
                         style={inputStyle()}
-                      />
+                      /></label>
                     </div>
 
                     {shippingMethod === "home_delivery" && (
                       <>
-                        <input
+                        <label>Adresse *<input required
                           value={addr.address1 || ""}
                           onChange={(e) =>
                             setAddr((s) => ({ ...s, address1: e.target.value }))
                           }
                           placeholder="Adresse"
                           style={inputStyle()}
-                        />
+                        /></label>
                         <input
                           value={addr.address2 || ""}
                           onChange={(e) =>
@@ -532,11 +484,11 @@ export function CheckoutPage() {
                     <div
                       style={{
                         display: "grid",
-                        gridTemplateColumns: "1fr 1fr 1fr",
+                        gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 180px), 1fr))",
                         gap: theme.spacing.md,
                       }}
                     >
-                      <input
+                      <label>Code postal *<input required
                         value={addr.postal_code}
                         onChange={(e) =>
                           setAddr((s) => ({
@@ -546,16 +498,16 @@ export function CheckoutPage() {
                         }
                         placeholder="Code postal"
                         style={inputStyle()}
-                      />
-                      <input
+                      /></label>
+                      <label>Ville{shippingMethod === "home_delivery" ? " *" : " (point relais)"}<input required={shippingMethod === "home_delivery"} readOnly={shippingMethod === "mondial_relay"}
                         value={addr.city}
                         onChange={(e) =>
                           setAddr((s) => ({ ...s, city: e.target.value }))
                         }
                         placeholder="Ville"
                         style={inputStyle()}
-                      />
-                      <select
+                      /></label>
+                      <label>Pays *<select required
                         value={(addr.country || "BE").toUpperCase()}
                         onChange={(e) =>
                           setAddr((s) => ({
@@ -565,15 +517,15 @@ export function CheckoutPage() {
                         }
                         style={inputStyle()}
                       >
-                        {COUNTRY_OPTIONS.map((c) => (
-                          <option key={c.code} value={c.code}>
-                            {getOptionLabel(c.code, c.label)}
+                        {countries.map((c) => (
+                          <option key={c.country_code} value={c.country_code}>
+                            {getOptionLabel(c.country_code, c.country_name)}
                           </option>
                         ))}
-                      </select>
+                      </select></label>
                     </div>
 
-                    {isBelgiumFreeShipping && (
+                    {isFreeShipping && isCountrySupported && (
                       <div
                         style={{
                           padding: theme.spacing.md,
@@ -585,7 +537,7 @@ export function CheckoutPage() {
                           fontWeight: theme.typography.fontWeight.medium,
                         }}
                       >
-                        Livraison offerte en Belgique dès 65€ d'achat.
+                        Livraison offerte pour ce mode dès {((threshold || 0) / 100).toFixed(2)} € d’articles avant remise.
                       </div>
                     )}
 
@@ -626,7 +578,8 @@ export function CheckoutPage() {
                               country={addr.country || "BE"}
                               postCode={addr.postal_code}
                               city={addr.city}
-                              onSelect={(relay) =>
+                              onSelect={(relay) => {
+                                setAddr(a => ({ ...a, city: relay.city || "" }));
                                 setRelayPoint({
                                   id: relay.id,
                                   name: relay.name ?? undefined,
@@ -634,8 +587,8 @@ export function CheckoutPage() {
                                   city: relay.city ?? undefined,
                                   postalCode: relay.postalCode ?? undefined,
                                   country: relay.country ?? undefined,
-                                })
-                              }
+                                });
+                              }}
                             />
 
                             {relayPoint?.id && (
@@ -838,7 +791,7 @@ export function CheckoutPage() {
                         fontWeight: theme.typography.fontWeight.medium,
                         color: !isCountrySupported
                           ? theme.colors.error.main
-                          : isBelgiumFreeShipping
+                          : isFreeShipping
                             ? theme.colors.success.main
                             : "inherit",
                       }}

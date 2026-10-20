@@ -1,3 +1,4 @@
+import AdminShippingPage from "./pages/admin/AdminShippingPage";
 import { ConsultationConfirmationPage } from "./pages/ConsultationConfirmationPage";
 import AdminContentPage from "./pages/admin/AdminContentPage";
 import { CollaboratorsPage } from "./pages/CollaboratorsPage";
@@ -154,6 +155,7 @@ function App() {
 
               {/* Parameters */}
               <Route path="parameters" element={<AdminParametersPage />} />
+              <Route path="shipping" element={<AdminShippingPage />} />
 
               <Route
                 path="product-reviews"
