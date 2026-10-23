@@ -1,5 +1,6 @@
+import { statusLabel, shippingLabel } from "../../../utils/orderStatus";
 // client/src/pages/admin/orders/AdminOrdersLayout.tsx
-import React, { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   adminOrderService,
   AdminOrder,
@@ -133,7 +134,7 @@ export default function AdminOrdersLayout() {
         prev.map((o) => (o.id === updated.id ? { ...o, status: updated.status } : o))
       );
     } catch (e: any) {
-      setError(getErrorMessage(e, "Erreur update status"));
+      setError(getErrorMessage(e, "Impossible de modifier le statut"));
     }
   };
 
@@ -164,7 +165,7 @@ export default function AdminOrdersLayout() {
         )
       );
     } catch (e: any) {
-      setError(getErrorMessage(e, "Erreur update shipping"));
+      setError(getErrorMessage(e, "Impossible de modifier la livraison"));
     }
   };
 
@@ -210,7 +211,7 @@ export default function AdminOrdersLayout() {
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Recherche: order id, email, coupon..."
+            placeholder="Recherche : numéro de commande, e-mail, code de réduction…"
             className="px-3 py-2 rounded-lg border md:col-span-2"
           />
 
@@ -219,10 +220,10 @@ export default function AdminOrdersLayout() {
             onChange={(e) => setStatus(e.target.value as any)}
             className="px-3 py-2 rounded-lg border"
           >
-            <option value="">Status (tous)</option>
+            <option value="">Commande : tous les statuts</option>
             {ORDER_STATUSES.map((s) => (
               <option key={s} value={s}>
-                {s}
+                {statusLabel(s)}
               </option>
             ))}
           </select>
@@ -232,10 +233,10 @@ export default function AdminOrdersLayout() {
             onChange={(e) => setShippingStatus(e.target.value as any)}
             className="px-3 py-2 rounded-lg border"
           >
-            <option value="">Shipping status (tous)</option>
+            <option value="">Livraison : tous les statuts</option>
             {SHIPPING_STATUSES.map((s) => (
               <option key={s} value={s}>
-                {s}
+                {statusLabel(s)}
               </option>
             ))}
           </select>
@@ -245,10 +246,10 @@ export default function AdminOrdersLayout() {
             onChange={(e) => setShippingMethod(e.target.value as any)}
             className="px-3 py-2 rounded-lg border"
           >
-            <option value="">Shipping method (tous)</option>
+            <option value="">Tous les modes de livraison</option>
             {SHIPPING_METHODS.map((m) => (
               <option key={m} value={m}>
-                {m}
+                {shippingLabel(m)}
               </option>
             ))}
           </select>
@@ -259,11 +260,11 @@ export default function AdminOrdersLayout() {
             Appliquer
           </button>
           <button onClick={clearFilters} className="px-3 py-2 rounded-lg border">
-            Reset
+            Réinitialiser
           </button>
 
           <div className="ml-auto flex items-center gap-2">
-            <label className="text-sm opacity-70">Limit</label>
+            <label className="text-sm opacity-70">Par page</label>
             <select
               value={limit}
               onChange={(e) => {
@@ -297,7 +298,7 @@ export default function AdminOrdersLayout() {
                 <th className="text-left p-3">Num Commande</th>
                 <th className="text-left p-3">Client</th>
                 <th className="text-left p-3">Statut</th>
-                <th className="text-left p-3">Shipping</th>
+                <th className="text-left p-3">Livraison</th>
                 <th className="text-left p-3">Total</th>
                 <th className="text-left p-3">Date</th>
                 <th className="text-right p-3">Actions</th>
@@ -325,11 +326,11 @@ export default function AdminOrdersLayout() {
                       <div className="opacity-70">{o.customer_email || "-"}</div>
                     </td>
                     <td className="p-3">
-                      <span className="px-2 py-1 rounded-md border bg-white">{o.status}</span>
+                      <span className="px-2 py-1 rounded-md border bg-white">{statusLabel(o.status)}</span>
                     </td>
                     <td className="p-3">
-                      <div className="opacity-80">{o.shipping_method || "-"}</div>
-                      <div className="text-xs opacity-70">{o.shipping_status}</div>
+                      <div className="opacity-80">{shippingLabel(o.shipping_method)}</div>
+                      <div className="text-xs opacity-70">{statusLabel(o.shipping_status)}</div>
                     </td>
                     <td className="p-3 font-medium">{money(o.total_amount, o.currency)}</td>
                     <td className="p-3 opacity-80">{new Date(o.created_at).toLocaleString("fr-BE")}</td>
@@ -385,7 +386,7 @@ export default function AdminOrdersLayout() {
           <div className="absolute right-0 top-0 h-full w-full md:w-[720px] bg-white shadow-xl p-4 md:p-6 overflow-auto">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <h2 className="text-lg font-semibold">Order details</h2>
+                <h2 className="text-lg font-semibold">Détails de la commande</h2>
                 <div className="text-xs font-mono opacity-70">{selectedId}</div>
               </div>
               <button
@@ -417,8 +418,8 @@ export default function AdminOrdersLayout() {
                         {money(selectedOrder.total_amount, selectedOrder.currency)}
                       </div>
                       <div className="text-xs opacity-70">
-                        subtotal {money(selectedOrder.subtotal_amount, selectedOrder.currency)} • shipping{" "}
-                        {money(selectedOrder.shipping_amount, selectedOrder.currency)} • discount{" "}
+                        Sous-total {money(selectedOrder.subtotal_amount, selectedOrder.currency)} • Livraison{" "}
+                        {money(selectedOrder.shipping_amount, selectedOrder.currency)} • Réduction{" "}
                         {money(selectedOrder.discount_amount, selectedOrder.currency)}
                       </div>
                     </div>
@@ -426,7 +427,7 @@ export default function AdminOrdersLayout() {
 
                   <div className="flex flex-col md:flex-row gap-2 md:items-center md:justify-between">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm opacity-70">Order status</span>
+                      <span className="text-sm opacity-70">Statut de la commande</span>
                       <select
                         value={selectedOrder.status}
                         onChange={(e) => updateStatus(e.target.value as OrderStatus)}
@@ -434,7 +435,7 @@ export default function AdminOrdersLayout() {
                       >
                         {ORDER_STATUSES.map((s) => (
                           <option key={s} value={s}>
-                            {s}
+                            {statusLabel(s)}
                           </option>
                         ))}
                       </select>
@@ -454,7 +455,7 @@ export default function AdminOrdersLayout() {
 
                 {/* Items */}
                 <div className="rounded-xl border p-4">
-                  <h3 className="font-semibold mb-2">Items</h3>
+                  <h3 className="font-semibold mb-2">Articles</h3>
                   <div className="overflow-auto">
                     <table className="min-w-[600px] w-full text-sm">
                       <thead className="bg-black/5">
@@ -477,7 +478,7 @@ export default function AdminOrdersLayout() {
                         {(selectedOrder.items || []).length === 0 && (
                           <tr>
                             <td className="p-2" colSpan={4}>
-                              Aucun item
+                              Aucun article
                             </td>
                           </tr>
                         )}
@@ -488,7 +489,7 @@ export default function AdminOrdersLayout() {
 
                 {/* Address */}
                 <div className="rounded-xl border p-4">
-                  <h3 className="font-semibold mb-2">Shipping address</h3>
+                  <h3 className="font-semibold mb-2">Adresse de livraison</h3>
                   {selectedOrder.address ? (
                     <div className="text-sm space-y-1">
                       <div className="font-medium">{selectedOrder.address.full_name}</div>
@@ -511,26 +512,26 @@ export default function AdminOrdersLayout() {
 
                 {/* Payment */}
                 <div className="rounded-xl border p-4">
-                  <h3 className="font-semibold mb-2">Payment</h3>
+                  <h3 className="font-semibold mb-2">Paiement</h3>
                   {selectedOrder.payment ? (
                     <div className="text-sm space-y-1">
                       <div>
-                        Provider: <span className="font-medium">{selectedOrder.payment.provider}</span>
+                        Prestataire : <span className="font-medium">{selectedOrder.payment.provider}</span>
                       </div>
                       <div>
-                        Status: <span className="font-medium">{selectedOrder.payment.status}</span>
+                        Statut : <span className="font-medium">{selectedOrder.payment.status === "processing" ? "Paiement en cours" : statusLabel(selectedOrder.payment.status)}</span>
                       </div>
                       <div>
-                        Amount:{" "}
+                        Montant :{" "}
                         <span className="font-medium">
                           {money(selectedOrder.payment.amount, selectedOrder.payment.currency)}
                         </span>
                       </div>
                       <div className="text-xs opacity-70 font-mono">
-                        intent: {selectedOrder.payment.stripe_payment_intent_id || "-"}
+                        Référence du paiement : {selectedOrder.payment.stripe_payment_intent_id || "-"}
                       </div>
                       <div className="text-xs opacity-70 font-mono">
-                        charge: {selectedOrder.payment.stripe_charge_id || "-"}
+                        Référence de transaction : {selectedOrder.payment.stripe_charge_id || "-"}
                       </div>
                     </div>
                   ) : (
@@ -587,11 +588,11 @@ function ShippingEditor({
 
   return (
     <div className="rounded-xl border p-4 space-y-3">
-      <h3 className="font-semibold">Shipping</h3>
+      <h3 className="font-semibold">Livraison</h3>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
         <div>
-          <div className="text-xs opacity-70 mb-1">Method</div>
+          <div className="text-xs opacity-70 mb-1">Mode de livraison</div>
           <select
             value={shipping_method}
             onChange={(e) => setMethod(e.target.value as any)}
@@ -600,14 +601,14 @@ function ShippingEditor({
             <option value="">(non défini)</option>
             {SHIPPING_METHODS.map((m) => (
               <option key={m} value={m}>
-                {m}
+                {shippingLabel(m)}
               </option>
             ))}
           </select>
         </div>
 
         <div>
-          <div className="text-xs opacity-70 mb-1">Status</div>
+          <div className="text-xs opacity-70 mb-1">Statut</div>
           <select
             value={shipping_status}
             onChange={(e) => setStatus(e.target.value as any)}
@@ -615,14 +616,14 @@ function ShippingEditor({
           >
             {SHIPPING_STATUSES.map((s) => (
               <option key={s} value={s}>
-                {s}
+                {statusLabel(s)}
               </option>
             ))}
           </select>
         </div>
 
         <div>
-          <div className="text-xs opacity-70 mb-1">Tracking number</div>
+          <div className="text-xs opacity-70 mb-1">Numéro de suivi</div>
           <input
             value={shipping_tracking_number}
             onChange={(e) => setTrackingNumber(e.target.value)}
@@ -632,7 +633,7 @@ function ShippingEditor({
         </div>
 
         <div>
-          <div className="text-xs opacity-70 mb-1">Tracking URL</div>
+          <div className="text-xs opacity-70 mb-1">Lien de suivi</div>
           <input
             value={shipping_tracking_url}
             onChange={(e) => setTrackingUrl(e.target.value)}
@@ -648,7 +649,7 @@ function ShippingEditor({
           disabled={saving}
           className="px-3 py-2 rounded-lg bg-black text-white disabled:opacity-60"
         >
-          {saving ? "Saving..." : "Save shipping"}
+          {saving ? "Enregistrement…" : "Enregistrer la livraison"}
         </button>
       </div>
     </div>

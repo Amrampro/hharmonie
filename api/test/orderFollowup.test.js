@@ -43,7 +43,7 @@ test("order confirmation, private tracking, SMTP retry and additive migration", 
     await connection.query("CREATE DATABASE ?? CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci", [schema]); created = true;
     await connection.query("USE ??", [schema]);
     const expected = readExpectedSchema();
-    for (const name of ["orders", "order_items", "order_addresses", "order_shipping", "order_payments", "parameters"]) {
+    for (const name of ["products", "product_images", "orders", "order_items", "order_addresses", "order_shipping", "order_payments", "parameters"]) {
       let sql = expected.find(table => table.name === name).create;
       sql = sql.split("\n").filter(line => !line.trimStart().startsWith("CONSTRAINT ") && !(name === "orders" && /^(tracking_token|invoice_send_started_at) /.test(line.trimStart()))).join("\n").replace(/,\s*\) ENGINE/, "\n) ENGINE");
       await connection.query(sql);
@@ -54,6 +54,7 @@ test("order confirmation, private tracking, SMTP retry and additive migration", 
     assert.equal((await connection.query("SELECT total_amount FROM orders WHERE id='order'"))[0][0].total_amount, 2500);
     await connection.query("INSERT INTO parameters (id,name,email,phone,enterprise_number) VALUES ('settings','Harmonie Test','support@example.com','12345','BE123')");
     await connection.query("INSERT INTO order_addresses (id,order_id,full_name,email,city,postal_code,address1) VALUES ('address','order','Client','client@example.com','Bruxelles','1000','Adresse test')");
+    await connection.query("INSERT INTO products (id,name,slug,price,image_url) VALUES ('product','Produit actuel','produit-test',30,'https://example.com/product.jpg')");
     await connection.query("INSERT INTO order_items (id,order_id,product_id,product_name,quantity,unit_price,line_total) VALUES ('item','order','product','Produit test',1,2500,2500)");
     await connection.query("INSERT INTO order_payments (id,order_id,provider,status,stripe_checkout_session_id,amount,currency) VALUES ('payment','order','stripe','requires_payment','cs_test_order',2500,'EUR')");
     const database = { query: async (sql, params = []) => (await connection.execute(sql, params))[0], getConnection: async () => ({ execute: connection.execute.bind(connection), beginTransaction: connection.beginTransaction.bind(connection), commit: connection.commit.bind(connection), rollback: connection.rollback.bind(connection), release() {}, destroy() {} }) };
@@ -77,7 +78,7 @@ test("order confirmation, private tracking, SMTP retry and additive migration", 
     assert.match(saved.tracking_token, /^[a-f0-9]{64}$/); assert.ok(saved.invoice_sent_at);
     await assert.rejects(orders.getOrderForUser({ orderId: "order", token: "0".repeat(64) }));
     const result = await orders.getOrderForUser({ orderId: "order", token: saved.tracking_token });
-    assert.equal(result.items[0].product_name, "Produit test"); assert.equal(result.order.tracking_token, undefined); assert.ok(result.tracking_url.includes("/follow-order?"));
+    assert.equal(result.items[0].product_name, "Produit test"); assert.equal(result.items[0].image_url, "https://example.com/product.jpg"); assert.equal(result.items[0].unit_price, 2500); assert.equal(result.order.tracking_token, undefined); assert.ok(result.tracking_url.includes("/follow-order?"));
     await assert.rejects(orders.lookupOrder("order", "wrong@example.com"));
     const [buyer] = await database.query("SELECT email FROM order_addresses WHERE order_id='order'");
     const found = await orders.lookupOrder("order", buyer.email.toUpperCase());

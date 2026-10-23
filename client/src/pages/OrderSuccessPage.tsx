@@ -1,3 +1,5 @@
+import { ClipboardCheck, CreditCard, Package, Truck, CheckCircle, Check, AlertCircle, ImageOff } from "lucide-react";
+import { statusLabel, shippingLabel, orderProgress } from "../utils/orderStatus";
 import { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
@@ -19,10 +21,14 @@ type OrderData = {
     shipping_tracking_url?: string;
     shipping_tracking_number?: string;
     shipping_status?: string;
+    shipping_method?: string;
+    coupon_code?: string;
+    updated_at?: string;
     created_at: string;
   };
   items: {
     id: string;
+    image_url?: string | null;
     product_name: string;
     quantity: number;
     unit_price: number;
@@ -31,6 +37,7 @@ type OrderData = {
   address: {
     full_name: string;
     email: string;
+    phone?: string;
     address1: string;
     address2?: string;
     city: string;
@@ -45,18 +52,6 @@ type OrderData = {
     provider?: string;
   } | null;
   tracking_url: string;
-};
-const labels: Record<string, string> = {
-  pending_payment: "En attente du paiement",
-  pending: "En attente",
-  paid: "Paiement confirmé",
-  processing: "En préparation",
-  shipped: "Expédiée",
-  delivered: "Livrée",
-  completed: "Terminée",
-  cancelled: "Annulée",
-  refunded: "Remboursée",
-  not_set: "En attente de préparation",
 };
 const paidStates = ["paid", "processing", "shipped", "delivered", "completed"];
 export default function OrderSuccessPage({
@@ -127,6 +122,8 @@ export default function OrderSuccessPage({
     };
   }, [id, token, session, tracking, attempt]);
   const order = data?.order;
+  const progress = orderProgress(order?.status || "pending", order?.shipping_status);
+  const steps = [{ label: "Commande reçue", icon: ClipboardCheck }, { label: "Paiement confirmé", icon: CreditCard }, { label: "En préparation", icon: Package }, { label: "En transit", icon: Truck }, { label: "Livrée", icon: CheckCircle }];
   const paid = Boolean(order && paidStates.includes(order.status));
   const money = (value: number) =>
     (Number(value) / 100).toLocaleString("fr-BE", {
@@ -182,7 +179,7 @@ export default function OrderSuccessPage({
               Référence : <strong>{order.order_number || order.id}</strong>
             </p>
             <p role="status" className={paid ? "order-paid" : ""}>
-              {labels[order.status] || order.status}
+              {statusLabel(order.status)}
             </p>
           </>
         )}
@@ -251,6 +248,21 @@ export default function OrderSuccessPage({
       </header>
       {data && order && (
         <>
+          <section className="order-journey" aria-label="Avancement de votre commande">
+            <div className="order-journey-heading"><div><span className="order-eyebrow">VOTRE COMMANDE, ÉTAPE PAR ÉTAPE</span><h2>{progress.exception ? statusLabel(progress.exception) : steps[progress.stage].label}</h2></div><span className="order-status-badge">{statusLabel(order.status)}</span></div>
+            {progress.exception && <p className="order-exception" role="status"><AlertCircle size={20} aria-hidden="true" />{statusLabel(progress.exception)}. Le parcours de livraison habituel ne s’applique plus à cette commande.</p>}
+            <div className="order-steps-scroll" tabIndex={0} aria-label="Les cinq étapes du suivi, défilement horizontal sur petit écran">
+              <ol className="order-steps">{steps.map(({ label, icon: Icon }, index) => <li key={label} className={index < progress.stage ? "done" : index === progress.stage ? "current" : ""} aria-current={index === progress.stage ? "step" : undefined}>
+                <span className="order-step-icon">{index < progress.stage ? <Check size={23} aria-hidden="true" /> : <Icon size={23} aria-hidden="true" />}</span>
+                <strong>{label}</strong><small>{progress.exception ? "—" : index < progress.stage ? "Étape passée" : index === progress.stage ? "Étape actuelle" : "À venir"}</small>
+              </li>)}</ol>
+            </div>
+            <p className="order-status-note">État communiqué par notre équipe. {order.updated_at && <>Dernière mise à jour : {new Date(order.updated_at).toLocaleString("fr-BE")}.</>} Consultez le suivi du transporteur pour le détail du trajet.</p>
+          </section>
+          <div className="order-customer-summary">
+            <article><h2>Vos coordonnées</h2>{data.address ? <><strong>{data.address.full_name}</strong><p>E-mail : {data.address.email}<br />Téléphone : {data.address.phone || "Non renseigné"}</p></> : <p>Coordonnées indisponibles.</p>}</article>
+            <article><h2>Informations de commande</h2><dl className="order-details"><div><dt>Numéro</dt><dd>{order.order_number || order.id}</dd></div><div><dt>Passée le</dt><dd>{new Date(order.created_at).toLocaleString("fr-BE")}</dd></div><div><dt>Mode de livraison</dt><dd>{shippingLabel(order.shipping_method)}</dd></div><div><dt>Statut de la commande</dt><dd>{statusLabel(order.status)}</dd></div><div><dt>Statut du colis</dt><dd>{statusLabel(order.shipping_status)}</dd></div>{order.coupon_code && <div><dt>Code de réduction</dt><dd>{order.coupon_code}</dd></div>}</dl></article>
+          </div>
           {paid && (
             <p>
               {order.invoice_sent_at
@@ -267,7 +279,7 @@ export default function OrderSuccessPage({
           {paid && (
             <aside className="order-delivery-notice">
               <p>
-                Délai de livraison : 3 - 7 jours ouvrables, et jusqu'à 10 jours dans les périodes d'affluence partir du jour où
+                Délai de livraison : 3 - 7 jours ouvrables, et jusqu'à 10 jours dans les périodes d'affluence à partir du jour où
                 le colis a été expédié.
               </p>
               <p>
@@ -295,10 +307,11 @@ export default function OrderSuccessPage({
               <h2>Votre commande</h2>
               {data.items.map((item) => (
                 <div className="order-follow-item" key={item.id}>
-                  <div>
+                  <div className="order-product-photo">{item.image_url ? <img src={item.image_url} alt={item.product_name} loading="lazy" onError={event => { event.currentTarget.style.display = "none"; }} /> : <ImageOff aria-label="Photo indisponible" size={28} />}</div>
+                  <div className="order-product-description">
                     <strong>{item.product_name}</strong>
                     <p>
-                      {item.quantity} × {money(item.unit_price)}
+                      Quantité : {item.quantity}<br />Prix unitaire : {money(item.unit_price)}
                     </p>
                   </div>
                   <strong>{money(item.line_total)}</strong>
@@ -345,7 +358,7 @@ export default function OrderSuccessPage({
                 </p>
               )}
               {order.shipping_status && (
-                <p>{labels[order.shipping_status] || order.shipping_status}</p>
+                <p>{statusLabel(order.shipping_status)}</p>
               )}
               {trackingNumber && (
                 <p>

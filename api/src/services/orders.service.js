@@ -413,7 +413,7 @@ export async function getOrderForUser({ orderId, token, sessionId }) {
     await query("UPDATE orders SET tracking_token = COALESCE(tracking_token, ?) WHERE id = ?", [crypto.randomBytes(32).toString("hex"), orderId]);
     [order] = await query("SELECT * FROM orders WHERE id = ? LIMIT 1", [orderId]);
   }
-  const items = await query("SELECT * FROM order_items WHERE order_id = ? ORDER BY created_at ASC", [orderId]);
+  const items = await query("SELECT oi.*, COALESCE(NULLIF(p.image_url, ''), (SELECT pi.image_url FROM product_images pi WHERE pi.product_id = oi.product_id ORDER BY pi.is_primary DESC, pi.display_order ASC, pi.id ASC LIMIT 1)) AS image_url FROM order_items oi LEFT JOIN products p ON p.id = oi.product_id WHERE oi.order_id = ? ORDER BY oi.created_at ASC", [orderId]);
   const [address] = await query("SELECT * FROM order_addresses WHERE order_id = ? LIMIT 1", [orderId]);
   const [shipping] = await query("SELECT * FROM order_shipping WHERE order_id = ? LIMIT 1", [orderId]);
   const tracking_url = orderTrackingUrl(order);
